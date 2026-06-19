@@ -118,10 +118,150 @@ class _KanaTab extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-            ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+class _KanjiTab extends StatefulWidget {
+  const _KanjiTab({
+    required this.kanjis,
+    required this.settings,
+    required this.accent,
+  });
+
+  final List<KanjiModel> kanjis;
+  final SettingsState settings;
+  final Color accent;
+
+  @override
+  State<_KanjiTab> createState() => _KanjiTabState();
+}
+
+class _KanjiTabState extends State<_KanjiTab> {
+  String? _selectedRadical;
+
+  @override
+  Widget build(BuildContext context) {
+    // Collect unique radicals
+    final radicals = widget.kanjis
+        .expand((k) => k.radicals)
+        .toSet()
+        .toList()
+      ..sort();
+
+    final filteredKanjis = _selectedRadical == null
+        ? widget.kanjis
+        : widget.kanjis.where((k) => k.radicals.contains(_selectedRadical)).toList();
+
+    return Column(
+      children: [
+        // Filtro de Radicales
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Text(
+                'RADICAL:',
+                style: TextStyle(
+                  color: widget.accent.withValues(alpha: 0.6),
+                  fontFamily: 'Courier',
+                  fontSize: 12,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String?>(
+                    value: _selectedRadical,
+                    isExpanded: true,
+                    dropdownColor: CyberTheme.bgObsidian,
+                    icon: Icon(Icons.arrow_drop_down, color: widget.accent),
+                    hint: Text(
+                      'TODOS',
+                      style: TextStyle(
+                        color: widget.accent,
+                        fontFamily: 'Courier',
+                        fontSize: 14,
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: widget.accent,
+                      fontFamily: 'Courier',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('TODOS'),
+                      ),
+                      ...radicals.map(
+                        (r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(r),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) => setState(() => _selectedRadical = val),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Divider(color: widget.accent.withValues(alpha: 0.1), height: 1),
+
+        // Grid de Kanjis
+        Expanded(
+          child: filteredKanjis.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.inventory_2_outlined, color: widget.accent.withValues(alpha: 0.2), size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'BASE DE DATOS KANJI VACÍA',
+                        style: TextStyle(
+                          color: widget.accent.withValues(alpha: 0.4),
+                          fontFamily: 'Courier',
+                          fontSize: 12,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.all(8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 6,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                  ),
+                  itemCount: filteredKanjis.length,
+                  itemBuilder: (context, i) {
+                    final kanji = filteredKanjis[i];
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: widget.accent.withValues(alpha: 0.3)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        kanji.character,
+                        style: const TextStyle(
+                          color: CyberTheme.textNeutral,
+                          fontSize: 24,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

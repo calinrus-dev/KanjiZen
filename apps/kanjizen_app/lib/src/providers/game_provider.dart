@@ -70,7 +70,9 @@ extension GameModeLabel on GameMode {
 
 /// Provider central del juego — orquesta SRS, validación y persistencia.
 class GameNotifier extends StateNotifier<GameState> {
-  GameNotifier() : super(const GameState());
+  GameNotifier(this.ref) : super(const GameState());
+
+  final Ref ref;
 
   final _validator = InputValidator();
   final _repo = CharacterRepository.instance;
@@ -255,5 +257,5 @@ class GameNotifier extends StateNotifier<GameState> {
 }
 
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>(
-  (_) => GameNotifier(),
+  (ref) => GameNotifier(ref),
 );

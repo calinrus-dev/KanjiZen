@@ -2,6 +2,7 @@ import 'dart:isolate';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../entities/kana_entity.dart';
+import '../entities/kanji_entity.dart';
 import 'kana_seed_data.dart';
 
 /// Inicializa la base de datos Isar y siembra los datos de Kana en background.
@@ -13,7 +14,7 @@ class DatabaseInitializerService {
     if (_instance != null && _instance!.isOpen) return _instance!;
     final dir = await getApplicationDocumentsDirectory();
     _instance = await Isar.open(
-      [KanaEntitySchema],
+      [KanaEntitySchema, KanjiEntitySchema],
       directory: dir.path,
       inspector: false,
     );
@@ -36,7 +37,7 @@ class DatabaseInitializerService {
   static Future<void> _seedIsolate() async {
     final dir = await getApplicationDocumentsDirectory();
     final isar = await Isar.open(
-      [KanaEntitySchema],
+      [KanaEntitySchema, KanjiEntitySchema],
       directory: dir.path,
       inspector: false,
     );

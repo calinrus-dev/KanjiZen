@@ -79,8 +79,14 @@ class KanaDisplay extends StatelessWidget {
                               color: CyberTheme.textNeutral,
                               fontWeight: FontWeight.w100,
                               shadows: [
-                                Shadow(color: accent.withValues(alpha: 0.4), blurRadius: 20),
-                                Shadow(color: accent.withValues(alpha: 0.2), blurRadius: 40),
+                                Shadow(
+                                  color: accent.withValues(alpha: 0.4),
+                                  blurRadius: 20,
+                                ),
+                                Shadow(
+                                  color: accent.withValues(alpha: 0.2),
+                                  blurRadius: 40,
+                                ),
                               ],
                             ),
                           ),

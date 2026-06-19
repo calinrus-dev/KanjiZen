@@ -18,8 +18,9 @@ export 'src/molecules/metric_chip.dart';
 
 // ─── Organisms ────────────────────────────────────────────────────────────────
 export 'src/organisms/game_header.dart';
-export 'src/organisms/inventory_section.dart';
 export 'src/organisms/activity_graph.dart';
+export 'src/organisms/inventory_section.dart';
+export 'src/organisms/cyber_zen_modal.dart';
 
 // ─── Painters ────────────────────────────────────────────────────────────────
 export 'src/painters/bg_pattern_painter.dart';

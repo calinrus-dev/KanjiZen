@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
 
@@ -125,6 +126,9 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void _handleSuccess(KanaModel kana) {
+    // 🔊 Audio Feedback Inmediato
+    AudioFeedbackService.instance.playReading(kana.character);
+
     final now = DateTime.now().millisecondsSinceEpoch;
     final responseMs = _questionStartMs != null ? now - _questionStartMs! : 500;
 

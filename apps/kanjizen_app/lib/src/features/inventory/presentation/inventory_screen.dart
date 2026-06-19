@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kz_core/kz_core.dart';
+import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kz_ui_components/kz_ui_components.dart';
 
@@ -70,6 +71,15 @@ class InventoryScreen extends StatelessWidget {
                       title: 'HIRAGANA',
                       kanas: hiragana,
                       accentColor: accent,
+                      onKanaTap: (kana) {
+                        CyberZenModal.show(
+                          context,
+                          kana,
+                          () => AudioFeedbackService.instance.playReading(
+                            kana.character,
+                          ),
+                        );
+                      },
                     ),
                   if (katakana.isNotEmpty)
                     InventorySection(
@@ -77,6 +87,15 @@ class InventoryScreen extends StatelessWidget {
                       kanas: katakana,
                       accentColor: accent,
                       initiallyExpanded: false,
+                      onKanaTap: (kana) {
+                        CyberZenModal.show(
+                          context,
+                          kana,
+                          () => AudioFeedbackService.instance.playReading(
+                            kana.character,
+                          ),
+                        );
+                      },
                     ),
                   if (allKanas.isEmpty)
                     Padding(

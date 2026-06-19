@@ -1,65 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:kz_core/kz_core.dart';
-import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
-import 'package:kz_ui_components/kz_ui_components.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kanjizen_app/src/providers/game_provider.dart';
+import 'package:kanjizen_app/src/features/inventory/presentation/kanji_detail_modal.dart';
 
-/// InventoryScreen — listas colapsables Hiragana + Katakana.
-/// Puede usarse como Screen completa o como contenido de Drawer
 class InventoryScreen extends ConsumerWidget {
-  const InventoryScreen({super.key, this.kanas, this.kanjis = const []});
-
-  final List<KanaModel>? kanas;
-  final List<KanjiModel> kanjis; // Próximamente se poblará desde el Provider
+  const InventoryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameProvider);
     final settings = ref.watch(settingsProvider);
-    final accent = CyberTheme.defaultAccent;
+    final accent = _getAccentColor(settings.accentColor);
 
-    return DefaultTabController(
-      length: 2,
-      child: Container(
-        color: CyberTheme.bgObsidian,
+    return Container(
+      color: CyberTheme.bgObsidian,
+      child: DefaultTabController(
+        length: 2,
         child: Column(
           children: [
-            // ─── Header con TabBar ──────────────────────────────────────────
             Container(
               padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top + 12,
-                left: 16,
-                right: 16,
+                left: 16, right: 16,
               ),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: accent.withValues(alpha: 0.2)),
-                ),
-              ),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: accent.withValues(alpha: 0.2)))),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      if (Navigator.canPop(context))
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Icon(
-                            Icons.close,
-                            color: accent.withValues(alpha: 0.6),
-                            size: 20,
-                          ),
-                        ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close, color: accent.withValues(alpha: 0.6), size: 20),
+                      ),
                       const SizedBox(width: 12),
                       Text(
-                        'INVENTARIO',
-                        style: TextStyle(
-                          color: accent,
-                          fontFamily: 'Courier',
-                          fontSize: 14,
-                          letterSpacing: 3,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        'PERFIL Y DIAGNÓSTICO',
+                        style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 14, letterSpacing: 2, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -68,26 +46,17 @@ class InventoryScreen extends ConsumerWidget {
                     indicatorColor: accent,
                     labelColor: accent,
                     unselectedLabelColor: accent.withValues(alpha: 0.4),
-                    labelStyle: const TextStyle(
-                      fontFamily: 'Courier',
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                    tabs: const [
-                      Tab(text: 'KANA'),
-                      Tab(text: 'KANJI'),
-                    ],
+                    labelStyle: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2),
+                    tabs: const [Tab(text: 'INVENTARIO'), Tab(text: 'MÉTRICAS')],
                   ),
                 ],
               ),
             ),
-
-            // ─── Tab Bar Views ──────────────────────────────────────────────
             Expanded(
               child: TabBarView(
                 children: [
-                  _KanaTab(kanas: kanas, settings: settings, accent: accent),
-                  _KanjiTab(kanjis: kanjis, settings: settings, accent: accent),
+                  _InventoryTab(kanas: state.kanas, kanjis: state.kanjis, accent: accent),
+                  _MetricsTab(state: state, accent: accent),
                 ],
               ),
             ),
@@ -96,222 +65,190 @@ class InventoryScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Color _getAccentColor(CyberAccent c) {
+    switch (c) {
+      case CyberAccent.green: return CyberTheme.defaultAccent;
+      case CyberAccent.red: return CyberTheme.errorRed;
+      case CyberAccent.orange: return Colors.orange;
+      case CyberAccent.blue: return Colors.cyanAccent;
+      case CyberAccent.purple: return Colors.purpleAccent;
+      case CyberAccent.white: return Colors.white;
+    }
+  }
 }
 
-class _KanaTab extends StatelessWidget {
-  const _KanaTab({
-    required this.kanas,
-    required this.settings,
-    required this.accent,
-  });
-
-  final List<KanaModel>? kanas;
-  final SettingsState settings;
+class _InventoryTab extends StatelessWidget {
+  const _InventoryTab({required this.kanas, required this.kanjis, required this.accent});
+  final List<KanaModel> kanas;
+  final List<KanjiModel> kanjis;
   final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final allKanas = kanas ?? [];
-    final hiragana = allKanas.where((k) => !k.isKatakana).toList();
-    final katakana = allKanas.where((k) => k.isKatakana).toList();
+    final hiragana = kanas.where((k) => !k.isKatakana).toList();
+    final katakana = kanas.where((k) => k.isKatakana).toList();
 
-    return SingleChildScrollView(
-      child: Column(
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSection('HIRAGANA', hiragana),
+        const SizedBox(height: 16),
+        _buildSection('KATAKANA', katakana),
+        const SizedBox(height: 16),
+        _buildKanjiSection('KANJIS (${kanjis.length})', kanjis),
+      ],
+    );
+  }
+
+  Widget _buildSection(String title, List<KanaModel> items) {
+    return Theme(
+      data: ThemeData(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        title: Text(title, style: TextStyle(color: accent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
+        iconColor: accent,
+        collapsedIconColor: accent.withValues(alpha: 0.5),
         children: [
-          if (hiragana.isNotEmpty)
-            InventorySection(
-              title: 'HIRAGANA',
-              kanas: hiragana,
-              accentColor: accent,
-              onKanaTap: (kana) {
-                CyberZenModal.show(
-                  context: context,
-                  kana: kana,
-                  enableStrokeAnimation: settings.enableStrokeAnimation,
-                  onPlayAudio: () {
-                    if (settings.enableAudio) {
-                      AudioFeedbackService.instance.playReading(kana.character);
-                    }
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
+            itemCount: items.length,
+            itemBuilder: (ctx, i) => _Cell(character: items[i].character, tier: 'S', isUnlocked: items[i].isUnlocked, accent: accent),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKanjiSection(String title, List<KanjiModel> items) {
+    return Theme(
+      data: ThemeData(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        title: Text(title, style: TextStyle(color: accent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
+        iconColor: accent,
+        collapsedIconColor: accent.withValues(alpha: 0.5),
+        children: [
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
+            itemCount: items.length > 100 ? 100 : items.length, // Render limitado para no reventar
+            itemBuilder: (ctx, i) => _Cell(
+              character: items[i].character, 
+              tier: 'A', 
+              isUnlocked: items[i].isUnlocked, 
+              accent: accent,
+              onTap: () {
+                KanjiDetailModal.show(
+                  context: ctx,
+                  kanji: items[i],
+                  accent: accent,
+                  onForceUnlock: () {
+                    // TODO: Redirect to 1-shot session
                   },
+                  onReset: () {},
+                  onLock: () {},
                 );
               },
             ),
-          if (katakana.isNotEmpty)
-            InventorySection(
-              title: 'KATAKANA',
-              kanas: katakana,
-              accentColor: accent,
-              initiallyExpanded: false,
-              onKanaTap: (kana) {
-                CyberZenModal.show(
-                  context: context,
-                  kana: kana,
-                  enableStrokeAnimation: settings.enableStrokeAnimation,
-                  onPlayAudio: () {
-                    if (settings.enableAudio) {
-                      AudioFeedbackService.instance.playReading(kana.character);
-                    }
-                  },
-                );
-              },
-            ),
-          if (allKanas.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'Cargando kana...',
-                style: TextStyle(
-                  color: accent.withValues(alpha: 0.3),
-                  fontFamily: 'Courier',
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          const SizedBox(height: 32),
+          ),
         ],
       ),
     );
   }
 }
 
-class _KanjiTab extends StatefulWidget {
-  const _KanjiTab({
-    required this.kanjis,
-    required this.settings,
-    required this.accent,
-  });
-
-  final List<KanjiModel> kanjis;
-  final SettingsState settings;
+class _Cell extends StatelessWidget {
+  const _Cell({required this.character, required this.tier, required this.isUnlocked, required this.accent, this.onTap});
+  final String character;
+  final String tier;
+  final bool isUnlocked;
   final Color accent;
-
-  @override
-  State<_KanjiTab> createState() => _KanjiTabState();
-}
-
-class _KanjiTabState extends State<_KanjiTab> {
-  String? _selectedRadical;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Collect unique radicals
-    final radicals = widget.kanjis
-        .expand((k) => k.radicals)
-        .toSet()
-        .toList()
-      ..sort();
+    Widget content;
+    if (!isUnlocked) {
+      content = Container(
+        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+        alignment: Alignment.center,
+        child: const Icon(Icons.lock, color: Colors.grey, size: 16),
+      );
+    } else {
+      content = Container(
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.1),
+          border: Border.all(color: accent.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Stack(
+          children: [
+            Center(child: Text(character, style: TextStyle(color: accent, fontSize: 24))),
+            Positioned(
+              top: 2, right: 2,
+              child: Text(tier, style: TextStyle(color: accent, fontSize: 10, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    }
 
-    final filteredKanjis = _selectedRadical == null
-        ? widget.kanjis
-        : widget.kanjis.where((k) => k.radicals.contains(_selectedRadical)).toList();
+    return GestureDetector(
+      onTap: onTap,
+      child: content,
+    );
+  }
+}
 
-    return Column(
-      children: [
-        // Filtro de Radicales
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Text(
-                'RADICAL:',
-                style: TextStyle(
-                  color: widget.accent.withValues(alpha: 0.6),
-                  fontFamily: 'Courier',
-                  fontSize: 12,
-                  letterSpacing: 2,
-                ),
+class _MetricsTab extends StatelessWidget {
+  const _MetricsTab({required this.state, required this.accent});
+  final GameState state;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPanel('PRECISIÓN GLOBAL', '${(state.hitRate * 100).toStringAsFixed(1)}%'),
+          const SizedBox(height: 16),
+          _buildPanel('TIEMPO MEDIO REACCIÓN', '${state.avgMs} ms'),
+          const SizedBox(height: 16),
+          _buildPanel('RACHA ACTUAL', '${state.streak}'),
+          const SizedBox(height: 32),
+          const Text('ANÁLISIS DE FALLOS CRÍTICOS', style: TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 12)),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(border: Border.all(color: CyberTheme.errorRed.withValues(alpha: 0.3)), borderRadius: BorderRadius.circular(8)),
+              child: const Center(
+                child: Text('Sin datos suficientes', style: TextStyle(color: CyberTheme.textNeutral)),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String?>(
-                    value: _selectedRadical,
-                    isExpanded: true,
-                    dropdownColor: CyberTheme.bgObsidian,
-                    icon: Icon(Icons.arrow_drop_down, color: widget.accent),
-                    hint: Text(
-                      'TODOS',
-                      style: TextStyle(
-                        color: widget.accent,
-                        fontFamily: 'Courier',
-                        fontSize: 14,
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: widget.accent,
-                      fontFamily: 'Courier',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('TODOS'),
-                      ),
-                      ...radicals.map(
-                        (r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(r),
-                        ),
-                      ),
-                    ],
-                    onChanged: (val) => setState(() => _selectedRadical = val),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-        Divider(color: widget.accent.withValues(alpha: 0.1), height: 1),
+        ],
+      ),
+    );
+  }
 
-        // Grid de Kanjis
-        Expanded(
-          child: filteredKanjis.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inventory_2_outlined, color: widget.accent.withValues(alpha: 0.2), size: 48),
-                      const SizedBox(height: 16),
-                      Text(
-                        'BASE DE DATOS KANJI VACÍA',
-                        style: TextStyle(
-                          color: widget.accent.withValues(alpha: 0.4),
-                          fontFamily: 'Courier',
-                          fontSize: 12,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(8),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                  ),
-                  itemCount: filteredKanjis.length,
-                  itemBuilder: (context, i) {
-                    final kanji = filteredKanjis[i];
-                    return Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: widget.accent.withValues(alpha: 0.3)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        kanji.character,
-                        style: const TextStyle(
-                          color: CyberTheme.textNeutral,
-                          fontSize: 24,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
+  Widget _buildPanel(String label, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), border: Border.all(color: accent.withValues(alpha: 0.3)), borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 24, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }

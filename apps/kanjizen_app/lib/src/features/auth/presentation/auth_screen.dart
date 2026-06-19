@@ -17,7 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _onLogin() async {
     setState(() => _loading = true);
-    await Future.delayed(const Duration(seconds: 1));
+    await Future<void>.delayed(const Duration(seconds: 1));
     if (mounted) context.go('/home');
   }
 
@@ -60,7 +60,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(
                 'SISTEMA DE APRENDIZAJE DE NIVEL ÉLITE',
                 style: TextStyle(
-                  color: CyberTheme.textNeutral.withOpacity(0.3),
+                  color: CyberTheme.textNeutral.withValues(alpha: 0.3),
                   fontSize: 9,
                   fontFamily: 'Courier',
                   letterSpacing: 2,
@@ -71,7 +71,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
               // ─── Login button ─────────────────────────────────────────────
               if (_loading)
-                SizedBox(
+                const SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
@@ -90,7 +90,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(
                 'v0.1.0-alpha · MecaNet × SRS × Kana',
                 style: TextStyle(
-                  color: CyberTheme.textNeutral.withOpacity(0.15),
+                  color: CyberTheme.textNeutral.withValues(alpha: 0.15),
                   fontSize: 9,
                   fontFamily: 'Courier',
                 ),

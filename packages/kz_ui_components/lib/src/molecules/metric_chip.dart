@@ -24,7 +24,7 @@ class MetricChip extends StatelessWidget {
         children: [
           TextSpan(
             text: '$label:',
-            style: TextStyle(color: CyberTheme.textNeutral.withOpacity(0.5)),
+            style: TextStyle(color: CyberTheme.textNeutral.withValues(alpha: 0.5)),
           ),
           const TextSpan(text: ' '),
           TextSpan(

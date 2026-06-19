@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
-import '../atoms/tier_badge.dart';
-import '../painters/kanji_vector_painter.dart';
+import 'package:kz_ui_components/src/atoms/tier_badge.dart';
+import 'package:kz_ui_components/src/painters/kanji_vector_painter.dart';
 
 /// MOLECULE: Display central del carácter Kana activo.
 /// Muestra el carácter grande con glow de acento y tier badge.
@@ -35,8 +35,8 @@ class KanaDisplay extends StatelessWidget {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                border: Border.all(color: accent.withOpacity(0.3), width: 1),
-                color: accent.withOpacity(0.04),
+                border: Border.all(color: accent.withValues(alpha: 0.3), width: 1),
+                color: accent.withValues(alpha: 0.04),
               ),
               child: Stack(
                 children: [
@@ -144,7 +144,7 @@ class _BracketPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size s) {
     final p = Paint()
-      ..color = color.withOpacity(0.6)
+      ..color = color.withValues(alpha: 0.6)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     final x = flipH ? s.width : 0.0;

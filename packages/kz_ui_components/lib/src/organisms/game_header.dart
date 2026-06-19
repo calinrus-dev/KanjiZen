@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kz_core/kz_core.dart';
-import '../molecules/metric_chip.dart';
+import 'package:kz_ui_components/src/molecules/metric_chip.dart';
 
-/// ORGANISM: Header monospace del juego.
-/// Fila: [Racha: X] [XXX ms] [A: XX%] [E: X]
+/// ORGANISM: Header monospace estricto.
 class GameHeader extends StatelessWidget {
   const GameHeader({
     super.key,
@@ -11,93 +10,104 @@ class GameHeader extends StatelessWidget {
     required this.avgMs,
     required this.hitRate,
     required this.errors,
-    this.accentColor,
+    required this.accentColor,
     this.onMenuTap,
-    this.onInventoryTap,
     this.onSettingsTap,
+    this.onPauseTap,
+    this.onInventoryTap,
   });
 
   final int streak;
   final int avgMs;
   final double hitRate;
   final int errors;
-  final Color? accentColor;
+  final Color accentColor;
   final VoidCallback? onMenuTap;
-  final VoidCallback? onInventoryTap;
   final VoidCallback? onSettingsTap;
+  final VoidCallback? onPauseTap;
+  final VoidCallback? onInventoryTap;
 
   @override
   Widget build(BuildContext context) {
-    final accent = accentColor ?? CyberTheme.defaultAccent;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: accent.withOpacity(0.15), width: 1),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: CyberTheme.bgObsidian,
+        // Sin bordes inferiores según las especificaciones minimalistas absolutas.
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Menú izquierdo
+          // Menú izquierdo (3 barras)
           if (onMenuTap != null)
-            GestureDetector(
-              onTap: onMenuTap,
-              child: Icon(
-                Icons.person_outline,
-                color: accent.withOpacity(0.6),
-                size: 20,
-              ),
+            IconButton(
+              icon: Icon(Icons.menu, color: accentColor, size: 24),
+              onPressed: onMenuTap,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
 
-          // Métricas
+          // Métricas CRUDAS alineadas
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                MetricChip(
-                  label: 'Racha',
-                  value: '$streak',
-                  accentColor: accent,
-                ),
-                const SizedBox(width: 16),
-                MetricChip(
-                  label: 'ms',
-                  value: avgMs > 0 ? '$avgMs' : '---',
-                  accentColor: accent,
-                ),
-                const SizedBox(width: 16),
-                MetricChip(
-                  label: 'A',
-                  value: '${(hitRate * 100).toStringAsFixed(0)}%',
-                  accentColor: accent,
-                ),
-                const SizedBox(width: 16),
-                MetricChip(
-                  label: 'E',
-                  value: '$errors',
-                  accentColor: CyberTheme.errorRed,
-                ),
+                _RawMetric(label: 'Racha', value: '$streak', color: accentColor),
+                const SizedBox(width: 12),
+                _RawMetric(label: 'ms', value: avgMs > 0 ? '$avgMs' : '---', color: accentColor),
+                const SizedBox(width: 12),
+                _RawMetric(label: 'A', value: '${(hitRate * 100).toStringAsFixed(0)}%', color: accentColor),
+                const SizedBox(width: 12),
+                _RawMetric(label: 'E', value: '$errors', color: CyberTheme.errorRed),
               ],
             ),
           ),
 
-          // Ajustes y Menú derecho
-          const SizedBox(width: 12),
+          // Inventario, Pausa y Ajustes
           if (onInventoryTap != null)
-            GestureDetector(
-              onTap: onInventoryTap,
-              child: Icon(Icons.inventory_2_outlined, color: accent.withValues(alpha: 0.6), size: 20),
+            IconButton(
+              icon: Icon(Icons.inventory_2_outlined, color: accentColor, size: 24),
+              onPressed: onInventoryTap,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 16),
+          if (onPauseTap != null)
+            IconButton(
+              icon: Icon(Icons.pause, color: accentColor, size: 24),
+              onPressed: onPauseTap,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          const SizedBox(width: 16),
           if (onSettingsTap != null)
-            GestureDetector(
-              onTap: onSettingsTap,
-              child: Icon(Icons.tune, color: accent.withValues(alpha: 0.6), size: 20),
+            IconButton(
+              icon: Icon(Icons.settings, color: accentColor, size: 24),
+              onPressed: onSettingsTap,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _RawMetric extends StatelessWidget {
+  const _RawMetric({required this.label, required this.value, required this.color});
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('[$label:', style: TextStyle(color: color.withValues(alpha: 0.5), fontFamily: 'Courier', fontSize: 12)),
+        const SizedBox(width: 4),
+        Text('$value]', style: TextStyle(color: color, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 }

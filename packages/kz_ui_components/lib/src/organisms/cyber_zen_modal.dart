@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
-import '../painters/bg_pattern_painter.dart';
-import '../painters/kanji_vector_painter.dart';
-import '../atoms/tier_badge.dart';
+import 'package:kz_ui_components/src/painters/bg_pattern_painter.dart';
+import 'package:kz_ui_components/src/painters/kanji_vector_painter.dart';
+import 'package:kz_ui_components/src/atoms/tier_badge.dart';
 
 /// ORGANISM: Modal expansivo "Cyber-Zen" para mostrar el Kana.
 /// Anima el trazo vectorial y proporciona feedback de audio.
@@ -75,7 +75,7 @@ class _CyberZenModalState extends State<CyberZenModal>
 
   @override
   Widget build(BuildContext context) {
-    final accent = CyberTheme.defaultAccent;
+    const accent = CyberTheme.defaultAccent;
     final tier = TierCalculator.calculate(
       hitRate: widget.kana.currentHitRate,
       avgMs: widget.kana.averageMs,

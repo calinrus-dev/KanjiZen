@@ -11,6 +11,20 @@ class KanjiEntity {
   @Index(unique: true)
   late String character;
 
+  @Index()
+  late String radical;
+
+  @Index()
+  late int jlpt; // 5 a 1
+
+  @Index()
+  late int joyo; // Grado 1 a 6, o 8 para secundaria superior
+
+  @Index()
+  late bool isJinmeiyo; // Para nombres
+
+  late List<String> kanjidicTranslations; // Traducciones de diccionario oficiales
+
   /// Lista de Onyomis (Lecturas chinas) en Katakana.
   List<String> onyomi = [];
 
@@ -35,4 +49,10 @@ class KanjiEntity {
   /// Estadísticas derivadas para consultas rápidas.
   double currentHitRate = 0.0;
   int averageMs = 0;
+
+  /// Nivel de Dominio SRS (0.0 a 10.0).
+  double srsScore = 0.0;
+
+  /// Fallos consecutivos para activar asistencia.
+  int consecutiveFails = 0;
 }

@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:kz_core/kz_core.dart';
-import '../models/kana_model.dart';
-import 'tier_calculator.dart';
+import 'package:kz_domain/src/models/kana_model.dart';
+import 'package:kz_domain/src/engine/tier_calculator.dart';
 
 part 'srs_engine.g.dart';
 

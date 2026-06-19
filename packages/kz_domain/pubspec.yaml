@@ -7,18 +7,16 @@ environment:
   sdk: ">=3.8.1 <4.0.0"
 
 dependencies:
-  # Paquetes internos del workspace
+  freezed_annotation: ^3.0.0
   kz_core:
     path: ../kz_core
-  # Modelos inmutables con Freezed
-  freezed_annotation: ^3.0.0
-  # Estado reactivo
   riverpod_annotation: ^2.6.1
 
 dev_dependencies:
-  test: ^1.25.8
   build_runner: ^2.4.13
+  custom_lint: ^0.7.5
+  flutter_lints: ^5.0.0
   freezed: ^3.0.0
   riverpod_generator: ^2.6.5
-  custom_lint: ^0.7.5
   riverpod_lint: ^2.6.5
+  test: ^1.25.8

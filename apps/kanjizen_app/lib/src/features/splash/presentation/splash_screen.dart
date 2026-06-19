@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_data/kz_data.dart';
@@ -37,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Iniciar seeding en background sin bloquear UI
     await Future.wait([
       DatabaseInitializerService.seedInBackground(),
-      Future.delayed(const Duration(seconds: 2)), // mínimo splash visible
+      Future<void>.delayed(const Duration(seconds: 2)), // mínimo splash visible
     ]);
     if (mounted) context.go('/auth');
   }
@@ -99,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       'ZERO BS · LATENCIA CERO · FLUIDEZ NATIVA',
                       style: TextStyle(
-                        color: CyberTheme.textNeutral.withOpacity(0.3),
+                        color: CyberTheme.textNeutral.withValues(alpha: 0.3),
                         fontSize: 9,
                         fontFamily: 'Courier',
                         letterSpacing: 3,
@@ -115,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
               SizedBox(
                 width: 120,
                 child: LinearProgressIndicator(
-                  backgroundColor: CyberTheme.defaultAccent.withOpacity(0.1),
+                  backgroundColor: CyberTheme.defaultAccent.withValues(alpha: 0.1),
                   valueColor: const AlwaysStoppedAnimation(
                     CyberTheme.defaultAccent,
                   ),
@@ -126,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
               Text(
                 'INICIALIZANDO SISTEMA',
                 style: TextStyle(
-                  color: CyberTheme.textNeutral.withOpacity(0.2),
+                  color: CyberTheme.textNeutral.withValues(alpha: 0.2),
                   fontSize: 9,
                   fontFamily: 'Courier',
                   letterSpacing: 2,
@@ -144,13 +143,13 @@ class _SplashScreenState extends State<SplashScreen>
 class _LogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size s) {
-    final accent = CyberTheme.defaultAccent;
+    const accent = CyberTheme.defaultAccent;
     final p = Paint()
       ..color = accent
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     final pFill = Paint()
-      ..color = accent.withOpacity(0.1)
+      ..color = accent.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
 
     // Octágono exterior
@@ -162,10 +161,11 @@ class _LogoPainter extends CustomPainter {
       final angle = (i * 45 - 22.5) * (3.14159 / 180);
       final x = cx + r * _cos(angle);
       final y = cy + r * _sin(angle);
-      if (i == 0)
+      if (i == 0) {
         oct.moveTo(x, y);
-      else
+      } else {
         oct.lineTo(x, y);
+      }
     }
     oct.close();
     canvas.drawPath(oct, pFill);

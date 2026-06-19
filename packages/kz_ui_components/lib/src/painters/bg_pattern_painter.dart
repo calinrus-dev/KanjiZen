@@ -16,7 +16,7 @@ class BgPatternPainter extends CustomPainter {
     );
 
     // ─── Dot grid ────────────────────────────────────────────────────────────
-    final dotPaint = Paint()..color = accentColor.withOpacity(0.06);
+    final dotPaint = Paint()..color = accentColor.withValues(alpha: 0.06);
     const spacing = 28.0;
     const dotR = 1.0;
     for (double x = 0; x < size.width; x += spacing) {
@@ -27,7 +27,7 @@ class BgPatternPainter extends CustomPainter {
 
     // ─── Líneas diagonales tenues (estética circuit-board) ───────────────────
     final linePaint = Paint()
-      ..color = accentColor.withOpacity(0.04)
+      ..color = accentColor.withValues(alpha: 0.04)
       ..strokeWidth = 0.5;
 
     // Líneas horizontales cada 84px
@@ -41,7 +41,7 @@ class BgPatternPainter extends CustomPainter {
 
   void _drawCornerBracket(Canvas canvas, Size size, Color color) {
     final p = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     const len = 20.0;

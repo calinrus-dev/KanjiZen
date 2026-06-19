@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kz_core/kz_core.dart';
-import '../painters/activity_graph_painter.dart';
+import 'package:kz_ui_components/src/painters/activity_graph_painter.dart';
 
 /// ORGANISM: Activity Graph completo — 7×52 heatmap con título y leyenda.
 class ActivityGraph extends StatelessWidget {
@@ -37,7 +37,7 @@ class ActivityGraph extends StatelessWidget {
               Text(
                 '365 días',
                 style: TextStyle(
-                  color: CyberTheme.textNeutral.withOpacity(0.3),
+                  color: CyberTheme.textNeutral.withValues(alpha: 0.3),
                   fontFamily: 'Courier',
                   fontSize: 10,
                 ),
@@ -69,7 +69,7 @@ class ActivityGraph extends StatelessWidget {
               Text(
                 'Menos',
                 style: TextStyle(
-                  color: CyberTheme.textNeutral.withOpacity(0.3),
+                  color: CyberTheme.textNeutral.withValues(alpha: 0.3),
                   fontSize: 9,
                   fontFamily: 'Courier',
                 ),
@@ -84,7 +84,7 @@ class ActivityGraph extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: i == 0
                         ? const Color(0xFF1A1D26)
-                        : accent.withOpacity(0.15 + i * 0.21),
+                        : accent.withValues(alpha: 0.15 + i * 0.21),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -93,7 +93,7 @@ class ActivityGraph extends StatelessWidget {
               Text(
                 'Más',
                 style: TextStyle(
-                  color: CyberTheme.textNeutral.withOpacity(0.3),
+                  color: CyberTheme.textNeutral.withValues(alpha: 0.3),
                   fontSize: 9,
                   fontFamily: 'Courier',
                 ),

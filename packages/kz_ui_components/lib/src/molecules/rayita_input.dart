@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 /// MOLECULE: Campo de texto crítico Cyber-Zen.
 /// Solo borde inferior. shakeX en error vía flutter_animate. Cero AnimationController manual.
@@ -28,14 +28,11 @@ class RayitaInput extends StatefulWidget {
 }
 
 class _RayitaInputState extends State<RayitaInput> {
-  InputState _prevState = InputState.neutral;
-  int _shakeKey = 0;
-
   Color get _lineColor {
     final accent = widget.accentColor ?? CyberTheme.defaultAccent;
     return switch (widget.inputState) {
-      InputState.neutral => CyberTheme.textNeutral.withOpacity(0.3),
-      InputState.progress => accent.withOpacity(0.7),
+      InputState.neutral => CyberTheme.textNeutral.withValues(alpha: 0.3),
+      InputState.progress => accent.withValues(alpha: 0.7),
       InputState.error => CyberTheme.errorRed,
       InputState.success => accent,
     };
@@ -44,11 +41,6 @@ class _RayitaInputState extends State<RayitaInput> {
   @override
   void didUpdateWidget(RayitaInput old) {
     super.didUpdateWidget(old);
-    if (widget.inputState == InputState.error &&
-        _prevState != InputState.error) {
-      setState(() => _shakeKey++);
-    }
-    _prevState = widget.inputState;
   }
 
   @override
@@ -72,7 +64,7 @@ class _RayitaInputState extends State<RayitaInput> {
       decoration: InputDecoration(
         hintText: widget.hint,
         hintStyle: TextStyle(
-          color: CyberTheme.textNeutral.withOpacity(0.2),
+          color: CyberTheme.textNeutral.withValues(alpha: 0.2),
           fontSize: 14,
           fontFamily: 'Courier',
           letterSpacing: 2,
@@ -88,13 +80,6 @@ class _RayitaInputState extends State<RayitaInput> {
       ),
     );
 
-    // shakeX solo cuando pasa a error — flutter_animate, 0 AnimationController
-    if (widget.inputState == InputState.error) {
-      field = field
-          .animate(key: ValueKey(_shakeKey))
-          .shakeX(duration: 300.ms, hz: 6, amount: 8);
-    }
-
-    return field;
+    return field.animate(target: widget.inputState == InputState.error ? 1 : 0).shakeX(duration: const Duration(milliseconds: 150));
   }
 }

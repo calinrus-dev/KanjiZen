@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'settings_state.dart';
+import 'package:kz_domain/src/settings/settings_state.dart';
 
 part 'settings_provider.g.dart';
 
@@ -11,11 +11,21 @@ class Settings extends _$Settings {
     return const SettingsState();
   }
 
-  void toggleStrokeAnimation() {
-    state = state.copyWith(enableStrokeAnimation: !state.enableStrokeAnimation);
+  void setAccentColor(CyberAccent color) => state = state.copyWith(accentColor: color);
+  void setFontSize(AppFontSize size) => state = state.copyWith(fontSize: size);
+  void setEngineLanguage(EngineLanguage lang) => state = state.copyWith(engineLanguage: lang);
+  void setTrainingMode(TrainingMode mode) => state = state.copyWith(trainingMode: mode);
+  void toggleRomajiHints() => state = state.copyWith(showRomajiHints: !state.showRomajiHints);
+  void setProgressiveSystem(ProgressiveSystem sys) => state = state.copyWith(progressiveSystem: sys);
+  
+  void toggleFreeModeKey(String key) {
+    final keys = List<String>.from(state.freeModeKeys);
+    if (keys.contains(key)) keys.remove(key);
+    else keys.add(key);
+    state = state.copyWith(freeModeKeys: keys);
   }
 
-  void toggleAudio() {
-    state = state.copyWith(enableAudio: !state.enableAudio);
-  }
+  void setDeathClock(DeathClock clock) => state = state.copyWith(deathClock: clock);
+  void toggleSkipOnError() => state = state.copyWith(skipOnError: !state.skipOnError);
+  void toggleHardcoreMode() => state = state.copyWith(hardcoreMode: !state.hardcoreMode);
 }

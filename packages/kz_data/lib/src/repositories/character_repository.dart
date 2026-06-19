@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
-import '../entities/kana_entity.dart';
-import '../services/database_initializer_service.dart';
+import 'package:kz_data/src/entities/kana_entity.dart';
+import 'package:kz_data/src/entities/kanji_entity.dart';
+import 'package:kz_data/src/services/database_initializer_service.dart';
 
 /// Repositorio de caracteres Kana — implementación Isar.
 /// Lecturas síncronas desde caché activa, escrituras asíncronas.
@@ -78,5 +79,51 @@ class CharacterRepository {
       ..currentHitRate = 0.0
       ..averageMs = 0;
     await isar.writeTxn(() async => isar.kanaEntitys.put(entity));
+  }
+
+  // ─── Kanji writes ─────────────────────────────────────────────────────────
+
+  Future<void> updateKanjiSrs(String character, double srsScore, int consecutiveFails) async {
+    final isar = await _db;
+    final entity = await isar.kanjiEntitys
+        .filter()
+        .characterEqualTo(character)
+        .findFirst();
+    if (entity == null) return;
+    
+    entity
+      ..srsScore = srsScore
+      ..consecutiveFails = consecutiveFails;
+      
+    await isar.writeTxn(() async => isar.kanjiEntitys.put(entity));
+  }
+
+  Future<void> unlockKanji(String character) async {
+    final isar = await _db;
+    final entity = await isar.kanjiEntitys
+        .filter()
+        .characterEqualTo(character)
+        .findFirst();
+    if (entity == null || entity.isUnlocked) return;
+    entity.isUnlocked = true;
+    await isar.writeTxn(() async => isar.kanjiEntitys.put(entity));
+  }
+
+  Future<void> updateKanjiProgress({
+    required String character,
+    required List<int> historyBlob,
+    required double hitRate,
+    required int averageMs,
+  }) async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      final kanji = await isar.kanjiEntitys.where().characterEqualTo(character).findFirst();
+      if (kanji != null) {
+        kanji.historyBlob = historyBlob;
+        kanji.currentHitRate = hitRate;
+        kanji.averageMs = averageMs;
+        await isar.kanjiEntitys.put(kanji);
+      }
+    });
   }
 }

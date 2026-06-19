@@ -59,7 +59,7 @@ class _TierHexPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withOpacity(0.15)
+        ..color = color.withValues(alpha: 0.15)
         ..style = PaintingStyle.fill,
     );
     canvas.drawPath(

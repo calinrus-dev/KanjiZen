@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../features/splash/presentation/splash_screen.dart';
-import '../features/auth/presentation/auth_screen.dart';
-import '../features/home/presentation/home_screen.dart';
-import '../features/inventory/presentation/inventory_screen.dart';
+import 'package:kanjizen_app/src/features/splash/presentation/splash_screen.dart';
+import 'package:kanjizen_app/src/features/auth/presentation/auth_screen.dart';
+import 'package:kanjizen_app/src/features/home/presentation/home_screen.dart';
+import 'package:kanjizen_app/src/features/inventory/presentation/inventory_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',

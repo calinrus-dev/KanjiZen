@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
-import '../molecules/grid_cell.dart';
+import 'package:kz_ui_components/src/molecules/grid_cell.dart';
 
 /// ORGANISM: Sección colapsable del inventario (Hiragana o Katakana).
 class InventorySection extends StatefulWidget {
@@ -48,7 +48,7 @@ class _InventorySectionState extends State<InventorySection> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: accent.withOpacity(0.2)),
+                bottom: BorderSide(color: accent.withValues(alpha: 0.2)),
               ),
             ),
             child: Row(
@@ -75,7 +75,7 @@ class _InventorySectionState extends State<InventorySection> {
                 Text(
                   '${widget.kanas.where((k) => k.isUnlocked).length}/${widget.kanas.length}',
                   style: TextStyle(
-                    color: CyberTheme.textNeutral.withOpacity(0.4),
+                    color: CyberTheme.textNeutral.withValues(alpha: 0.4),
                     fontFamily: 'Courier',
                     fontSize: 11,
                   ),

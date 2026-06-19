@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_core/kz_core.dart';
-import 'src/router/app_router.dart';
+import 'package:kanjizen_app/src/router/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

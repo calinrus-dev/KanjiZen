@@ -1,6 +1,6 @@
 /// kz_core — Punto de entrada público del paquete.
 /// Exporta: tema CyberZen, constantes, errores base e interfaces.
-library kz_core;
+library;
 
 export 'src/theme/cyber_theme.dart';
 export 'src/errors/kz_failure.dart';

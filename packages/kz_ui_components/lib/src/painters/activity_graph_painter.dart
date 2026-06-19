@@ -42,7 +42,7 @@ class ActivityGraphPainter extends CustomPainter {
           rect,
           Paint()
             ..color = activity > 0
-                ? accentColor.withOpacity(0.15 + activity * 0.85)
+                ? accentColor.withValues(alpha: 0.15 + activity * 0.85)
                 : const Color(0xFF1A1D26),
         );
       }

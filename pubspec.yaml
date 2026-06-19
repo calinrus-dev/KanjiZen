@@ -9,4 +9,5 @@ environment:
 # El pubspec.yaml raíz NO contiene dependencias de app.
 # Solo gestiona las herramientas de desarrollo del workspace global.
 dev_dependencies:
+  flutter_lints: ^5.0.0
   melos: ^6.3.2

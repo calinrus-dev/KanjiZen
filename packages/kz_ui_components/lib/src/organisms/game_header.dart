@@ -13,6 +13,7 @@ class GameHeader extends StatelessWidget {
     required this.errors,
     this.accentColor,
     this.onMenuTap,
+    this.onInventoryTap,
     this.onSettingsTap,
   });
 
@@ -22,6 +23,7 @@ class GameHeader extends StatelessWidget {
   final int errors;
   final Color? accentColor;
   final VoidCallback? onMenuTap;
+  final VoidCallback? onInventoryTap;
   final VoidCallback? onSettingsTap;
 
   @override
@@ -81,12 +83,18 @@ class GameHeader extends StatelessWidget {
             ),
           ),
 
-          // Ajustes derecho
+          // Ajustes y Menú derecho
           const SizedBox(width: 12),
+          if (onInventoryTap != null)
+            GestureDetector(
+              onTap: onInventoryTap,
+              child: Icon(Icons.inventory_2_outlined, color: accent.withValues(alpha: 0.6), size: 20),
+            ),
+          const SizedBox(width: 8),
           if (onSettingsTap != null)
             GestureDetector(
               onTap: onSettingsTap,
-              child: Icon(Icons.tune, color: accent.withOpacity(0.6), size: 20),
+              child: Icon(Icons.tune, color: accent.withValues(alpha: 0.6), size: 20),
             ),
         ],
       ),

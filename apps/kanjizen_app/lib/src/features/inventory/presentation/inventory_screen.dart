@@ -118,6 +118,56 @@ class _KanaTab extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
+          if (hiragana.isNotEmpty)
+            InventorySection(
+              title: 'HIRAGANA',
+              kanas: hiragana,
+              accentColor: accent,
+              onKanaTap: (kana) {
+                CyberZenModal.show(
+                  context: context,
+                  kana: kana,
+                  enableStrokeAnimation: settings.enableStrokeAnimation,
+                  onPlayAudio: () {
+                    if (settings.enableAudio) {
+                      AudioFeedbackService.instance.playReading(kana.character);
+                    }
+                  },
+                );
+              },
+            ),
+          if (katakana.isNotEmpty)
+            InventorySection(
+              title: 'KATAKANA',
+              kanas: katakana,
+              accentColor: accent,
+              initiallyExpanded: false,
+              onKanaTap: (kana) {
+                CyberZenModal.show(
+                  context: context,
+                  kana: kana,
+                  enableStrokeAnimation: settings.enableStrokeAnimation,
+                  onPlayAudio: () {
+                    if (settings.enableAudio) {
+                      AudioFeedbackService.instance.playReading(kana.character);
+                    }
+                  },
+                );
+              },
+            ),
+          if (allKanas.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                'Cargando kana...',
+                style: TextStyle(
+                  color: accent.withValues(alpha: 0.3),
+                  fontFamily: 'Courier',
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          const SizedBox(height: 32),
         ],
       ),
     );

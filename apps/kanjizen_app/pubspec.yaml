@@ -1,0 +1,49 @@
+name: kanjizen_app
+description: Capa de presentación de KanjiZen. Widgets, Screens, GoRouter. Orquesta todos los paquetes del workspace.
+
+publish_to: none
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+  flutter: ">=3.32.5"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # --- Paquetes internos del workspace ---
+  kz_core:
+    path: ../../packages/kz_core
+  kz_data:
+    path: ../../packages/kz_data
+  kz_domain:
+    path: ../../packages/kz_domain
+  kz_ui_components:
+    path: ../../packages/kz_ui_components
+  # --- Estado inmutable (Riverpod) ---
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  # --- Navegación ---
+  go_router: ^14.8.1
+  # --- Animaciones ---
+  flutter_animate: ^4.5.2
+  lottie: ^3.3.1
+  # --- Base de datos (cliente) ---
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  # --- TTS ---
+  flutter_tts: ^4.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.13
+  freezed: ^3.0.0
+  riverpod_generator: ^2.6.5
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.5
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/lotties/
+    - assets/data/

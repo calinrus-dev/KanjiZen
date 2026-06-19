@@ -1,0 +1,12 @@
+name: kanjizen_workspace
+description: Workspace raíz del monorepo KanjiZen — orquestado por Melos.
+
+publish_to: none
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+
+# El pubspec.yaml raíz NO contiene dependencias de app.
+# Solo gestiona las herramientas de desarrollo del workspace global.
+dev_dependencies:
+  melos: ^6.3.2

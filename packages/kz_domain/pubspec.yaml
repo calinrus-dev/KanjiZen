@@ -1,0 +1,24 @@
+name: kz_domain
+description: Motor SRS puro, validadores de input, cálculo de Tiers. Cero dependencias de Flutter — Dart puro.
+
+publish_to: none
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+
+dependencies:
+  # Paquetes internos del workspace
+  kz_core:
+    path: ../kz_core
+  # Modelos inmutables con Freezed
+  freezed_annotation: ^3.0.0
+  # Estado reactivo
+  riverpod_annotation: ^2.6.1
+
+dev_dependencies:
+  test: ^1.25.8
+  build_runner: ^2.4.13
+  freezed: ^3.0.0
+  riverpod_generator: ^2.6.5
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.5

@@ -1,0 +1,41 @@
+name: kanjizen_workspace
+
+packages:
+  - apps/*
+  - packages/*
+
+sdkPath: auto
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  # --- Análisis ---
+  analyze:
+    exec: dart analyze .
+    description: Analiza todo el código del workspace.
+
+  # --- Generación de código (Freezed, Riverpod, Isar) ---
+  build_runner:
+    exec: dart run build_runner build --delete-conflicting-outputs
+    description: Ejecuta build_runner masivo (Freezed, Riverpod, Isar).
+
+  build_runner:watch:
+    exec: dart run build_runner watch --delete-conflicting-outputs
+    description: Ejecuta build_runner en modo watch.
+
+  # --- Tests ---
+  test:
+    exec: flutter test
+    description: Ejecuta pruebas unitarias en todos los paquetes.
+
+  # --- Formateo ---
+  format:
+    exec: dart format . --fix
+    description: Formatea todo el código del workspace.
+
+  # --- Limpieza ---
+  clean:
+    exec: flutter clean
+    description: Limpia artefactos de build en todos los paquetes.

@@ -1,0 +1,30 @@
+name: kz_data
+description: Implementación Isar, entidades de BD, servicios TTS y DTOs. Gestiona todo el pipeline de datos y persistencia.
+
+publish_to: none
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+  flutter: ">=3.32.5"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Paquetes internos del workspace
+  kz_core:
+    path: ../kz_core
+  # Base de datos embebida de alta performance
+  # Nota: Las entidades Isar son clases @collection manuales — NO usan Freezed.
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.5
+  # TTS
+  flutter_tts: ^4.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # AISLADO: isar_generator tiene sus propias versiones de source_gen/dart_style.
+  # No mezclar con freezed ni riverpod_generator en este paquete.
+  build_runner: ^2.4.13
+  isar_generator: ^3.1.0+1

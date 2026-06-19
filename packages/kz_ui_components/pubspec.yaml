@@ -1,0 +1,27 @@
+name: kz_ui_components
+description: Widgets puros Cyber-Zen Industrial (RayitaInput, KanjiVectorPainter, ActivityGraph, GridCell). Cero dependencias de lógica de negocio.
+
+publish_to: none
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+  flutter: ">=3.32.5"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Paquetes internos del workspace
+  kz_core:
+    path: ../kz_core
+  kz_domain:
+    path: ../kz_domain
+  # Micro-animaciones (shakeX, etc.) — NO usar AnimationController manual
+  flutter_animate: ^4.5.2
+  # Animaciones Lottie para overlays de concepto
+  lottie: ^3.3.1
+  path_drawing: ^1.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.13

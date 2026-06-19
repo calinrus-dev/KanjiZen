@@ -1,0 +1,11 @@
+name: feature_brick
+description: Genera la estructura estándar de un feature en kanjizen_app (presentation, providers, domain).
+version: 0.1.0+1
+environment:
+  mason: ">=0.1.0-dev.52 <0.1.0"
+
+vars:
+  name:
+    type: string
+    description: Nombre del feature en snake_case (ej. home, inventory, profile)
+    prompt: "¿Nombre del feature?"

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_core/kz_core.dart';
+import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kz_ui_components/kz_ui_components.dart';
 import 'package:kanjizen_app/src/providers/kanji_srs_provider.dart';
@@ -24,22 +25,106 @@ class _KanjiSrsScreenState extends ConsumerState<KanjiSrsScreen> {
     super.dispose();
   }
 
-  void _onInputChanged(String input, KanjiModel kanji, KanjiSrsPhase phase) {
-    // Evaluación mock
-    String target = '';
-    if (phase == KanjiSrsPhase.initial || phase == KanjiSrsPhase.withdrawal) {
-      target = kanji.meanings.isNotEmpty ? kanji.meanings.first.toLowerCase() : '';
-      // En una implementación real se evaluaría el Romaji/Kunyomi
-    } else if (phase == KanjiSrsPhase.inversion) {
-      target = kanji.character;
+  bool _isCorrectReading(String input, KanjiModel kanji) {
+    final cleanInput = input.trim().toLowerCase();
+    if (cleanInput.isEmpty) return false;
+
+    String toRomaji(String kanaStr) {
+      final sb = StringBuffer();
+      for (var i = 0; i < kanaStr.length; i++) {
+        final char = kanaStr[i];
+        if (char == '.' || char == '-' || char == ' ') continue;
+        final seed = KanaSeedData.all.where((s) => s.character == char).firstOrNull;
+        if (seed != null) {
+          sb.write(seed.romaji);
+        } else {
+          sb.write(char);
+        }
+      }
+      return sb.toString().toLowerCase();
     }
 
-    if (input.trim() == target) {
+    for (final onyomi in kanji.onyomi) {
+      final cleanOnyomi = onyomi.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+      if (cleanOnyomi == cleanInput) return true;
+      if (toRomaji(onyomi) == cleanInput) return true;
+    }
+
+    for (final kunyomi in kanji.kunyomi) {
+      final cleanKunyomi = kunyomi.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+      if (cleanKunyomi == cleanInput) return true;
+      if (toRomaji(kunyomi) == cleanInput) return true;
+    }
+
+    for (final meaning in kanji.meanings) {
+      if (meaning.toLowerCase().trim() == cleanInput) return true;
+    }
+
+    return false;
+  }
+
+  bool _isReadingPrefix(String cleanInput, KanjiModel kanji) {
+    if (cleanInput.isEmpty) return false;
+
+    String toRomaji(String kanaStr) {
+      final sb = StringBuffer();
+      for (var i = 0; i < kanaStr.length; i++) {
+        final char = kanaStr[i];
+        if (char == '.' || char == '-' || char == ' ') continue;
+        final seed = KanaSeedData.all.where((s) => s.character == char).firstOrNull;
+        if (seed != null) {
+          sb.write(seed.romaji);
+        } else {
+          sb.write(char);
+        }
+      }
+      return sb.toString().toLowerCase();
+    }
+
+    for (final onyomi in kanji.onyomi) {
+      final cleanOnyomi = onyomi.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+      if (cleanOnyomi.startsWith(cleanInput)) return true;
+      if (toRomaji(onyomi).startsWith(cleanInput)) return true;
+    }
+
+    for (final kunyomi in kanji.kunyomi) {
+      final cleanKunyomi = kunyomi.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+      if (cleanKunyomi.startsWith(cleanInput)) return true;
+      if (toRomaji(kunyomi).startsWith(cleanInput)) return true;
+    }
+
+    for (final meaning in kanji.meanings) {
+      if (meaning.toLowerCase().trim().startsWith(cleanInput)) return true;
+    }
+
+    return false;
+  }
+
+  void _onInputChanged(String input, KanjiModel kanji, KanjiSrsPhase phase) {
+    final cleanInput = input.trim().toLowerCase();
+    if (cleanInput.isEmpty) {
+      setState(() => _inputState = InputState.neutral);
+      return;
+    }
+
+    bool isSuccess = false;
+    bool isPrefix = false;
+
+    if (phase == KanjiSrsPhase.inversion) {
+      final target = kanji.character;
+      isSuccess = (cleanInput == target);
+      isPrefix = target.startsWith(cleanInput);
+    } else {
+      isSuccess = _isCorrectReading(cleanInput, kanji);
+      isPrefix = _isReadingPrefix(cleanInput, kanji);
+    }
+
+    if (isSuccess) {
       setState(() => _inputState = InputState.success);
       _controller.clear();
       ref.read(kanjiSrsProvider.notifier).recordSuccess(kanji);
       setState(() => _inputState = InputState.neutral);
-    } else if (!target.startsWith(input.trim())) {
+    } else if (!isPrefix) {
       setState(() => _inputState = InputState.error);
       _controller.clear();
       ref.read(kanjiSrsProvider.notifier).recordError(kanji);
@@ -143,9 +228,7 @@ class _KanjiSrsScreenState extends ConsumerState<KanjiSrsScreen> {
   }
 
   Widget _buildMultipleChoicePanel(KanjiModel kanji) {
-    // TODO: Generar pool real con gemelos radicales.
-    final options = [kanji.character, '日', '目', '白'];
-    options.shuffle();
+    final options = ref.read(kanjiSrsProvider.notifier).generateDiscriminatoryOptions(kanji);
 
     return Padding(
       padding: const EdgeInsets.all(32.0),

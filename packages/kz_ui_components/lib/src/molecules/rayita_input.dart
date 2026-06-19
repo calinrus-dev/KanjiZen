@@ -47,7 +47,7 @@ class _RayitaInputState extends State<RayitaInput> {
   Widget build(BuildContext context) {
     final accent = widget.accentColor ?? CyberTheme.defaultAccent;
 
-    Widget field = TextField(
+    final Widget field = TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
       onChanged: widget.onChanged,

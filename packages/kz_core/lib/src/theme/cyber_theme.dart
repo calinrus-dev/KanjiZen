@@ -1,36 +1,82 @@
 import 'package:flutter/material.dart';
 
+/// Extensión de tema para propiedades dinámicas del motor Kanjizen
+class CyberThemeExtension extends ThemeExtension<CyberThemeExtension> {
+  const CyberThemeExtension({
+    required this.accentColor,
+    required this.fontMultiplier,
+    required this.strokeMultiplier,
+  });
+
+  final Color accentColor;
+  final double fontMultiplier;
+  final double strokeMultiplier;
+
+  @override
+  ThemeExtension<CyberThemeExtension> copyWith({
+    Color? accentColor,
+    double? fontMultiplier,
+    double? strokeMultiplier,
+  }) {
+    return CyberThemeExtension(
+      accentColor: accentColor ?? this.accentColor,
+      fontMultiplier: fontMultiplier ?? this.fontMultiplier,
+      strokeMultiplier: strokeMultiplier ?? this.strokeMultiplier,
+    );
+  }
+
+  @override
+  ThemeExtension<CyberThemeExtension> lerp(
+      covariant ThemeExtension<CyberThemeExtension>? other, double t) {
+    if (other is! CyberThemeExtension) return this;
+    return CyberThemeExtension(
+      accentColor: Color.lerp(accentColor, other.accentColor, t)!,
+      fontMultiplier:
+          lerpDouble(fontMultiplier, other.fontMultiplier, t) ?? fontMultiplier,
+      strokeMultiplier:
+          lerpDouble(strokeMultiplier, other.strokeMultiplier, t) ??
+              strokeMultiplier,
+    );
+  }
+
+  double? lerpDouble(double? a, double? b, double t) {
+    if (a == null && b == null) return null;
+    a ??= 0.0;
+    b ??= 0.0;
+    return a + (b - a) * t;
+  }
+}
+
 /// Sistema de Color Cyber-Zen Industrial.
-/// INMUTABLE — no modificar sin directiva global del arquitecto.
-/// El acento dinámico se controla exclusivamente vía Riverpod Provider.
 abstract final class CyberTheme {
-  // ─── Fondos ───────────────────────────────────────────────────────────────
-  /// Fondo absoluto y mate de toda la aplicación. Evita destellos visuales.
-  static const Color bgObsidian = Color(0xFF0D0E15);
-
-  // ─── Tipografía ───────────────────────────────────────────────────────────
-  /// Texto principal e indicadores tipográficos de alto contraste.
+  static const Color bgObsidian = Color(0xFF000000); // Negro puro OLED
   static const Color textNeutral = Color(0xFFFFFFFF);
-
-  // ─── Feedback ─────────────────────────────────────────────────────────────
-  /// Feedback inmediato para fallos críticos de entrada o alertas.
   static const Color errorRed = Color(0xFFE53935);
-
-  /// Color de acento primario para éxitos y progreso.
-  /// ⚠ Controlado dinámicamente vía Riverpod Provider — no usar directamente.
   static const Color defaultAccent = Color(0xFF00E676);
 
-  // ─── ThemeData ────────────────────────────────────────────────────────────
-  static ThemeData get themeData => ThemeData(
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: bgObsidian,
-    colorScheme: const ColorScheme.dark(
-      surface: bgObsidian,
-      primary: defaultAccent,
-      error: errorRed,
-      onSurface: textNeutral,
-    ),
-    fontFamily: 'Courier', // Monospace base — sobrescribir por feature
-    useMaterial3: true,
-  );
+  static ThemeData themeData({
+    Color accentColor = defaultAccent,
+    double fontMultiplier = 1.0,
+    double strokeMultiplier = 1.0,
+  }) {
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: bgObsidian,
+      colorScheme: ColorScheme.dark(
+        surface: bgObsidian,
+        primary: accentColor,
+        error: errorRed,
+        onSurface: textNeutral,
+      ),
+      fontFamily: 'Courier',
+      useMaterial3: true,
+      extensions: [
+        CyberThemeExtension(
+          accentColor: accentColor,
+          fontMultiplier: fontMultiplier,
+          strokeMultiplier: strokeMultiplier,
+        ),
+      ],
+    );
+  }
 }

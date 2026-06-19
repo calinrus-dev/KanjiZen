@@ -9,7 +9,7 @@ class SettingsModal extends StatelessWidget {
     required this.onSetAccentColor,
     required this.onSetFontSize,
     required this.onSetEngineLanguage,
-    required this.onSetTrainingMode,
+    required this.onSetAppLayoutMode,
     required this.onToggleRomajiHints,
     required this.onSetProgressiveSystem,
     required this.onToggleFreeModeKey,
@@ -22,7 +22,7 @@ class SettingsModal extends StatelessWidget {
   final ValueChanged<CyberAccent> onSetAccentColor;
   final ValueChanged<AppFontSize> onSetFontSize;
   final ValueChanged<EngineLanguage> onSetEngineLanguage;
-  final ValueChanged<TrainingMode> onSetTrainingMode;
+  final ValueChanged<AppLayoutMode> onSetAppLayoutMode;
   final VoidCallback onToggleRomajiHints;
   final ValueChanged<ProgressiveSystem> onSetProgressiveSystem;
   final ValueChanged<String> onToggleFreeModeKey;
@@ -36,7 +36,7 @@ class SettingsModal extends StatelessWidget {
     required ValueChanged<CyberAccent> onSetAccentColor,
     required ValueChanged<AppFontSize> onSetFontSize,
     required ValueChanged<EngineLanguage> onSetEngineLanguage,
-    required ValueChanged<TrainingMode> onSetTrainingMode,
+    required ValueChanged<AppLayoutMode> onSetAppLayoutMode,
     required VoidCallback onToggleRomajiHints,
     required ValueChanged<ProgressiveSystem> onSetProgressiveSystem,
     required ValueChanged<String> onToggleFreeModeKey,
@@ -44,7 +44,7 @@ class SettingsModal extends StatelessWidget {
     required VoidCallback onToggleSkipOnError,
     required VoidCallback onToggleHardcoreMode,
   }) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -53,7 +53,7 @@ class SettingsModal extends StatelessWidget {
         onSetAccentColor: onSetAccentColor,
         onSetFontSize: onSetFontSize,
         onSetEngineLanguage: onSetEngineLanguage,
-        onSetTrainingMode: onSetTrainingMode,
+        onSetAppLayoutMode: onSetAppLayoutMode,
         onToggleRomajiHints: onToggleRomajiHints,
         onSetProgressiveSystem: onSetProgressiveSystem,
         onToggleFreeModeKey: onToggleFreeModeKey,
@@ -139,12 +139,12 @@ class SettingsModal extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Modo de Entrenamiento
-            _buildTabSelector<TrainingMode>(
-              title: 'MODO DE ENTRENAMIENTO',
-              values: TrainingMode.values,
-              labels: const ['SÍLABA', 'PALABRAS/ESCRITURA'],
-              current: state.trainingMode,
-              onChanged: onSetTrainingMode,
+            _buildTabSelector<AppLayoutMode>(
+              title: 'LAYOUT VISUAL',
+              values: AppLayoutMode.values,
+              labels: const ['SÍLABA', 'PALABRA', 'TEXTO'],
+              current: state.layoutMode,
+              onChanged: onSetAppLayoutMode,
               accent: accent,
             ),
             const SizedBox(height: 24),
@@ -200,7 +200,7 @@ class SettingsModal extends StatelessWidget {
             _buildTabSelector<DeathClock>(
               title: 'RELOJ DE LA MUERTE (DEATH CLOCK)',
               values: DeathClock.values,
-              labels: const ['OFF', '5.0s', '3.0s', '1.5s'],
+              labels: const ['OFF', '5.0s', '3.0s', '1.5s', '1.0s', '0.75s', '0.5s'],
               current: state.deathClock,
               onChanged: onSetDeathClock,
               accent: CyberTheme.errorRed,

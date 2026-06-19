@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
+import 'package:kanjizen_app/src/providers/game_provider.dart';
 
 final kanjiSrsProvider = StateNotifierProvider<KanjiSrsNotifier, KanjiSrsState>((ref) {
   return KanjiSrsNotifier(CharacterRepository.instance);
@@ -23,25 +24,52 @@ class KanjiSrsState {
   final List<KanjiModel> activePool;
   final double averagePoolScore;
   final String error;
+  final EngineState engineState;
+  final int streak;
+  final int errors;
+  final int totalMs;
+  final int totalAttempts;
+  final int lastResponseMs;
 
   const KanjiSrsState({
     this.isLoading = true,
     this.activePool = const [],
     this.averagePoolScore = 0.0,
     this.error = '',
+    this.engineState = EngineState.welcome,
+    this.streak = 0,
+    this.errors = 0,
+    this.totalMs = 0,
+    this.totalAttempts = 0,
+    this.lastResponseMs = 0,
   });
+
+  double get hitRate => totalAttempts > 0 ? (totalAttempts - errors) / totalAttempts : 0.0;
+  int get avgMs => totalAttempts > 0 ? totalMs ~/ totalAttempts : 0;
 
   KanjiSrsState copyWith({
     bool? isLoading,
     List<KanjiModel>? activePool,
     double? averagePoolScore,
     String? error,
+    EngineState? engineState,
+    int? streak,
+    int? errors,
+    int? totalMs,
+    int? totalAttempts,
+    int? lastResponseMs,
   }) {
     return KanjiSrsState(
       isLoading: isLoading ?? this.isLoading,
       activePool: activePool ?? this.activePool,
       averagePoolScore: averagePoolScore ?? this.averagePoolScore,
       error: error ?? this.error,
+      engineState: engineState ?? this.engineState,
+      streak: streak ?? this.streak,
+      errors: errors ?? this.errors,
+      totalMs: totalMs ?? this.totalMs,
+      totalAttempts: totalAttempts ?? this.totalAttempts,
+      lastResponseMs: lastResponseMs ?? this.lastResponseMs,
     );
   }
 }
@@ -58,18 +86,24 @@ class KanjiSrsNotifier extends StateNotifier<KanjiSrsState> {
     try {
       final kanjis = await _repository.getAllKanjis();
       
-      final activeKanjis = kanjis.where((k) => k.isUnlocked).toList();
+      var activeKanjis = kanjis.where((k) => k.isUnlocked).toList();
       
       double avgScore = 0.0;
       if (activeKanjis.isNotEmpty) {
         avgScore = activeKanjis.fold(0.0, (s, k) => s + k.srsScore) / activeKanjis.length;
       }
 
-      // Regla de Homogeneidad: Si promedio >= 7.0, desbloquear nuevos (hasta 5 a la vez).
+      // Regla de Homogeneidad: Si promedio >= 7.0 o el pool activo está vacío, desbloquear nuevos (hasta 5 a la vez).
       if (avgScore >= 7.0 || activeKanjis.isEmpty) {
         final locked = kanjis.where((k) => !k.isUnlocked).take(5).toList();
         for (var l in locked) {
           await _repository.unlockKanji(l.character);
+          l.isUnlocked = true; // Update local memory object
+        }
+        // Recalculate active pool and average score from updated list
+        activeKanjis = kanjis.where((k) => k.isUnlocked).toList();
+        if (activeKanjis.isNotEmpty) {
+          avgScore = activeKanjis.fold(0.0, (s, k) => s + k.srsScore) / activeKanjis.length;
         }
       }
 
@@ -82,6 +116,16 @@ class KanjiSrsNotifier extends StateNotifier<KanjiSrsState> {
           consecutiveFails: e.consecutiveFails,
           meanings: e.meanings,
           radicals: e.radicals,
+          radical: e.radical,
+          onyomi: e.onyomi,
+          kunyomi: e.kunyomi,
+          jlpt: e.jlpt,
+          joyo: e.joyo,
+          isJinmeiyo: e.isJinmeiyo,
+          svgPaths: e.svgPaths,
+          historyBlob: e.historyBlob,
+          currentHitRate: e.currentHitRate,
+          averageMs: e.averageMs,
         )).toList(),
         averagePoolScore: avgScore,
       );
@@ -99,31 +143,101 @@ class KanjiSrsNotifier extends StateNotifier<KanjiSrsState> {
   }
 
   /// Aplica las penalizaciones específicas según la fase.
+  int? _questionStartMs;
+
+  void pause() => state = state.copyWith(engineState: EngineState.paused);
+  
+  void resume() {
+    state = state.copyWith(engineState: EngineState.playing);
+    _questionStartMs = DateTime.now().millisecondsSinceEpoch;
+  }
+  
+  void welcome() => state = state.copyWith(engineState: EngineState.welcome);
+
+  /// Aplica las penalizaciones específicas según la fase.
   Future<void> recordError(KanjiModel kanji) async {
     final currentScore = kanji.srsScore;
     final phase = getPhaseFor(currentScore);
     
-    double penalty = 0.0;
-    int fails = kanji.consecutiveFails + 1;
-
+    final double penalty;
+    final int fails = kanji.consecutiveFails + 1;
     if (phase == KanjiSrsPhase.withdrawal) {
       penalty = 0.25;
     } else if (phase == KanjiSrsPhase.inversion) {
-      penalty = 0.5; // Degradación
+      penalty = 0.5;
     } else if (phase == KanjiSrsPhase.discriminatory) {
       penalty = 0.1;
+    } else {
+      penalty = 0.0;
     }
 
     final newScore = (currentScore - penalty).clamp(0.0, 10.0);
 
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final responseMs = _questionStartMs != null ? now - _questionStartMs! : 1000;
+    _questionStartMs = now;
+
+    // Actualizar historial local
+    final encoded = TierCalculator.encodeAttempt(
+      isCorrect: false,
+      isDoubleStroke: false,
+      responseMs: responseMs,
+    );
+    var blob = [...kanji.historyBlob, encoded];
+    if (blob.length > 50) blob = blob.sublist(blob.length - 50);
+    final stats = TierCalculator.calculateStats(blob);
+
+    await _repository.updateKanjiProgress(
+      character: kanji.character,
+      historyBlob: blob,
+      hitRate: stats.hitRate,
+      averageMs: stats.avgMs,
+    );
     await _repository.updateKanjiSrs(kanji.character, newScore, fails);
     
+    state = state.copyWith(
+      errors: state.errors + 1,
+      totalAttempts: state.totalAttempts + 1,
+      streak: 0,
+      totalMs: state.totalMs + responseMs,
+      lastResponseMs: responseMs,
+    );
+
     await _initializePool();
   }
 
   Future<void> recordSuccess(KanjiModel kanji) async {
     final newScore = (kanji.srsScore + 0.5).clamp(0.0, 10.0);
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final responseMs = _questionStartMs != null ? now - _questionStartMs! : 1000;
+    _questionStartMs = now;
+
+    // Actualizar historial local
+    final encoded = TierCalculator.encodeAttempt(
+      isCorrect: true,
+      isDoubleStroke: false,
+      responseMs: responseMs,
+    );
+    var blob = [...kanji.historyBlob, encoded];
+    if (blob.length > 50) blob = blob.sublist(blob.length - 50);
+    final stats = TierCalculator.calculateStats(blob);
+
+    await _repository.updateKanjiProgress(
+      character: kanji.character,
+      historyBlob: blob,
+      hitRate: stats.hitRate,
+      averageMs: stats.avgMs,
+    );
     await _repository.updateKanjiSrs(kanji.character, newScore, 0);
+
+    state = state.copyWith(
+      totalAttempts: state.totalAttempts + 1,
+      streak: state.streak + 1,
+      totalMs: state.totalMs + responseMs,
+      lastResponseMs: responseMs,
+    );
+
     await _initializePool();
   }
 

@@ -30,3 +30,4 @@ export 'src/organisms/settings_modal.dart';
 // ─── Painters ────────────────────────────────────────────────────────────────
 export 'src/painters/bg_pattern_painter.dart';
 export 'src/painters/activity_graph_painter.dart';
+export 'src/painters/kanji_vector_painter.dart';

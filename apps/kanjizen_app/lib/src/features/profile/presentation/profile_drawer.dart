@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_core/kz_core.dart';
+import 'package:kz_domain/kz_domain.dart';
 import 'package:kanjizen_app/src/providers/game_provider.dart';
 
 class ProfileDrawer extends ConsumerWidget {
@@ -47,7 +48,7 @@ class ProfileDrawer extends ConsumerWidget {
                   const Text('ACTIVITY GRAPH', style: TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 12)),
                   const SizedBox(height: 12),
                   // Contenedor estático del graph por ahora
-                  SizedBox(
+                  const SizedBox(
                     height: 80,
                     width: double.infinity,
                     child: CustomPaint(
@@ -65,19 +66,19 @@ class ProfileDrawer extends ConsumerWidget {
                 length: 3,
                 child: Column(
                   children: [
-                    TabBar(
+                    const TabBar(
                       indicatorColor: accent,
                       labelColor: accent,
                       unselectedLabelColor: CyberTheme.textNeutral,
-                      labelStyle: const TextStyle(fontFamily: 'Courier', fontSize: 10, fontWeight: FontWeight.bold),
-                      tabs: const [Tab(text: 'KANA'), Tab(text: 'KANJI'), Tab(text: 'MECA')],
+                      labelStyle: TextStyle(fontFamily: 'Courier', fontSize: 10, fontWeight: FontWeight.bold),
+                      tabs: [Tab(text: 'KANA'), Tab(text: 'KANJI'), Tab(text: 'MECA')],
                     ),
                     Expanded(
                       child: TabBarView(
                         children: [
-                          _AnalyticsTab(mode: 'KANA', accent: accent),
-                          _AnalyticsTab(mode: 'KANJI', accent: accent),
-                          _AnalyticsTab(mode: 'MECA', accent: accent),
+                          _AnalyticsTab(mode: 'KANA', accent: CyberTheme.defaultAccent, kanas: state.kanas, kanjis: state.kanjis),
+                          _AnalyticsTab(mode: 'KANJI', accent: CyberTheme.defaultAccent, kanas: state.kanas, kanjis: state.kanjis),
+                          _AnalyticsTab(mode: 'MECA', accent: CyberTheme.defaultAccent, kanas: state.kanas, kanjis: state.kanjis),
                         ],
                       ),
                     ),
@@ -129,12 +130,75 @@ class _StatColumn extends StatelessWidget {
 }
 
 class _AnalyticsTab extends StatelessWidget {
-  const _AnalyticsTab({required this.mode, required this.accent});
+  const _AnalyticsTab({
+    required this.mode,
+    required this.accent,
+    required this.kanas,
+    required this.kanjis,
+  });
+
   final String mode;
   final Color accent;
+  final List<KanaModel> kanas;
+  final List<KanjiModel> kanjis;
 
   @override
   Widget build(BuildContext context) {
+    // Calcular dinámicamente dominantes y críticos
+    final List<String> dominantItems = [];
+    final List<String> criticalItems = [];
+
+    if (mode == 'KANA') {
+      final candidates = kanas.where((KanaModel k) => k.isUnlocked && k.historyBlob.isNotEmpty).toList();
+      final sortedDom = List<KanaModel>.from(candidates)
+        ..sort((KanaModel a, KanaModel b) {
+          final cmp = b.currentHitRate.compareTo(a.currentHitRate);
+          if (cmp != 0) return cmp;
+          return a.averageMs.compareTo(b.averageMs);
+        });
+      final sortedCrit = List<KanaModel>.from(candidates)
+        ..sort((KanaModel a, KanaModel b) {
+          final cmp = a.currentHitRate.compareTo(b.currentHitRate);
+          if (cmp != 0) return cmp;
+          return b.averageMs.compareTo(a.averageMs);
+        });
+      dominantItems.addAll(sortedDom.take(5).map((KanaModel k) => '${k.character} (${(k.averageMs / 1000.0).toStringAsFixed(1)}s)'));
+      criticalItems.addAll(sortedCrit.take(5).map((KanaModel k) => '${k.character} (${(k.averageMs / 1000.0).toStringAsFixed(1)}s)'));
+    } else if (mode == 'KANJI') {
+      final candidates = kanjis.where((KanjiModel k) => k.isUnlocked && k.historyBlob.isNotEmpty).toList();
+      final sortedDom = List<KanjiModel>.from(candidates)
+        ..sort((KanjiModel a, KanjiModel b) {
+          final cmp = b.currentHitRate.compareTo(a.currentHitRate);
+          if (cmp != 0) return cmp;
+          return a.averageMs.compareTo(b.averageMs);
+        });
+      final sortedCrit = List<KanjiModel>.from(candidates)
+        ..sort((KanjiModel a, KanjiModel b) {
+          final cmp = a.currentHitRate.compareTo(b.currentHitRate);
+          if (cmp != 0) return cmp;
+          return b.averageMs.compareTo(a.averageMs);
+        });
+      dominantItems.addAll(sortedDom.take(5).map((KanjiModel k) => '${k.character} (${(k.averageMs / 1000.0).toStringAsFixed(1)}s)'));
+      criticalItems.addAll(sortedCrit.take(5).map((KanjiModel k) => '${k.character} (${(k.averageMs / 1000.0).toStringAsFixed(1)}s)'));
+    } else {
+      // MECA (mismo peso para kanas y kanjis)
+      final List<({String character, int averageMs})> candKana = kanas
+          .where((KanaModel k) => k.isUnlocked && k.historyBlob.isNotEmpty)
+          .map((KanaModel k) => (character: k.character, averageMs: k.averageMs))
+          .toList();
+      final List<({String character, int averageMs})> candKanji = kanjis
+          .where((KanjiModel k) => k.isUnlocked && k.historyBlob.isNotEmpty)
+          .map((KanjiModel k) => (character: k.character, averageMs: k.averageMs))
+          .toList();
+      final List<({String character, int averageMs})> candidates = [...candKana, ...candKanji];
+      final sortedDom = List<({String character, int averageMs})>.from(candidates)
+        ..sort((a, b) => a.averageMs.compareTo(b.averageMs));
+      final sortedCrit = List<({String character, int averageMs})>.from(candidates)
+        ..sort((a, b) => b.averageMs.compareTo(a.averageMs));
+      dominantItems.addAll(sortedDom.take(5).map((k) => '${k.character} (${(k.averageMs / 1000.0).toStringAsFixed(1)}s)'));
+      criticalItems.addAll(sortedCrit.take(5).map((k) => '${k.character} (${(k.averageMs / 1000.0).toStringAsFixed(1)}s)'));
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -159,10 +223,13 @@ class _AnalyticsTab extends StatelessWidget {
                 children: [
                   Text('5 DOMINANTES', style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...List.generate(5, (i) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text('${i+1}. あ (0.9s)', style: const TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 14)),
-                  )),
+                  if (dominantItems.isEmpty)
+                    const Text('Sin datos', style: TextStyle(color: Colors.white24, fontFamily: 'Courier', fontSize: 12))
+                  else
+                    ...dominantItems.asMap().entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('${e.key + 1}. ${e.value}', style: const TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 14)),
+                    )),
                 ],
               ),
             ),
@@ -172,10 +239,13 @@ class _AnalyticsTab extends StatelessWidget {
                 children: [
                   const Text('5 CRÍTICOS', style: TextStyle(color: CyberTheme.errorRed, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...List.generate(5, (i) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text('${i+1}. ぬ (3.2s)', style: const TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 14)),
-                  )),
+                  if (criticalItems.isEmpty)
+                    const Text('Sin datos', style: TextStyle(color: Colors.white24, fontFamily: 'Courier', fontSize: 12))
+                  else
+                    ...criticalItems.asMap().entries.map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('${e.key + 1}. ${e.value}', style: const TextStyle(color: CyberTheme.textNeutral, fontFamily: 'Courier', fontSize: 14)),
+                    )),
                 ],
               ),
             ),
@@ -193,8 +263,8 @@ class ActivityGraphPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..style = PaintingStyle.fill;
-    final cols = 52;
-    final rows = 7;
+    const cols = 52;
+    const rows = 7;
     
     final cellWidth = (size.width - (cols - 1) * 2) / cols;
     final cellHeight = (size.height - (rows - 1) * 2) / rows;

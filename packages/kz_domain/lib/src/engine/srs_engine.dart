@@ -70,11 +70,15 @@ class SrsEngine extends _$SrsEngine {
   /// Avanza al siguiente carácter con selección ponderada.
   void advance() {
     if (state.pool.isEmpty) return;
-    // Re-barajar ocasionalmente para mantener variedad
-    final newPool = _weightedShuffle(state.pool);
+    int nextIdx = state.currentIndex + 1;
+    List<KanaModel> currentPool = state.pool;
+    if (nextIdx >= currentPool.length) {
+      currentPool = _weightedShuffle(currentPool);
+      nextIdx = 0;
+    }
     state = state.copyWith(
-      pool: newPool,
-      currentIndex: (state.currentIndex + 1) % newPool.length,
+      pool: currentPool,
+      currentIndex: nextIdx,
     );
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kz_core/kz_core.dart';
-import 'package:kz_ui_components/src/molecules/metric_chip.dart';
 
 /// ORGANISM: Header monospace estricto.
 class GameHeader extends StatelessWidget {

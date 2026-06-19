@@ -13,11 +13,22 @@ class InputValidator {
 
   // (Dakuten roots will be implemented when Flick direct Kana input is fully supported)
 
-  /// Mapa de romaji parcial → válido para multi-carácter (shi, chi, tsu...)
+  /// Mapa de romaji parcial y alternativo válido
   static const Map<String, List<String>> _multiCharRomaji = {
-    'shi': ['s', 'sh'],
-    'chi': ['c', 'ch'],
-    'tsu': ['t', 'ts'],
+    'shi': ['s', 'sh', 'si'],
+    'chi': ['c', 'ch', 't', 'ti'],
+    'tsu': ['t', 'ts', 'tu'],
+    'fu': ['f', 'h', 'hu'],
+    'ji': ['j', 'z', 'zi'],
+    'sha': ['sh', 's', 'sy', 'sya'],
+    'shu': ['sh', 's', 'sy', 'syu'],
+    'sho': ['sh', 's', 'sy', 'syo'],
+    'cha': ['ch', 'c', 'ty', 'tya'],
+    'chu': ['ch', 'c', 'ty', 'tyu'],
+    'cho': ['ch', 'c', 'ty', 'tyo'],
+    'ja': ['j', 'z', 'zy', 'zya'],
+    'ju': ['j', 'z', 'zy', 'zyu'],
+    'jo': ['j', 'z', 'zy', 'zyo'],
   };
 
   /// Evalúa el paso actual del input contra el target romaji.
@@ -28,11 +39,30 @@ class InputValidator {
     // Verifica si el input es prefijo válido del romaji objetivo
     if (targetRomaji.startsWith(input)) return InputState.progress;
 
-    // Verifica prefijos multi-carácter (shi→s,sh / chi→c,ch / tsu→t,ts)
-    for (final entry in _multiCharRomaji.entries) {
-      if (targetRomaji == entry.key && entry.value.contains(input)) {
-        return InputState.progress;
-      }
+    // Verifica alternativas y prefijos multi-carácter
+    if (_multiCharRomaji.containsKey(targetRomaji)) {
+      final validInputs = _multiCharRomaji[targetRomaji]!;
+      if (validInputs.contains(input)) return InputState.progress;
+      
+      // Si la alternativa exacta es ingresada (ej. 'si' en vez de 'shi')
+      // lo consideramos completado para no obligar a escribir 'shi'.
+      // Aunque lo ideal es que InputValidator retorne success si match
+      // la alternativa completa.
+      // Para simplificar, revisamos si el input *es* una de las alternativas largas:
+      if (input == 'si' && targetRomaji == 'shi') return InputState.success;
+      if (input == 'ti' && targetRomaji == 'chi') return InputState.success;
+      if (input == 'tu' && targetRomaji == 'tsu') return InputState.success;
+      if (input == 'hu' && targetRomaji == 'fu') return InputState.success;
+      if (input == 'zi' && targetRomaji == 'ji') return InputState.success;
+      if (input == 'sya' && targetRomaji == 'sha') return InputState.success;
+      if (input == 'syu' && targetRomaji == 'shu') return InputState.success;
+      if (input == 'syo' && targetRomaji == 'sho') return InputState.success;
+      if (input == 'tya' && targetRomaji == 'cha') return InputState.success;
+      if (input == 'tyu' && targetRomaji == 'chu') return InputState.success;
+      if (input == 'tyo' && targetRomaji == 'cho') return InputState.success;
+      if (input == 'zya' && targetRomaji == 'ja') return InputState.success;
+      if (input == 'zyu' && targetRomaji == 'ju') return InputState.success;
+      if (input == 'zyo' && targetRomaji == 'jo') return InputState.success;
     }
 
     return InputState.error;

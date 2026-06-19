@@ -14,53 +14,52 @@ class InventoryScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final accent = _getAccentColor(settings.accentColor);
 
-    return Container(
-      color: CyberTheme.bgObsidian,
-      child: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 12,
-                left: 16, right: 16,
+    return Scaffold(
+      backgroundColor: CyberTheme.bgObsidian,
+      body: SafeArea(
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: accent.withValues(alpha: 0.2)))),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Icon(Icons.arrow_back_ios, color: accent.withValues(alpha: 0.6), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'PERFIL Y DIAGNÓSTICO',
+                          style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 14, letterSpacing: 2, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TabBar(
+                      indicatorColor: accent,
+                      labelColor: accent,
+                      unselectedLabelColor: accent.withValues(alpha: 0.4),
+                      labelStyle: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2),
+                      tabs: const [Tab(text: 'INVENTARIO'), Tab(text: 'MÉTRICAS')],
+                    ),
+                  ],
+                ),
               ),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: accent.withValues(alpha: 0.2)))),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Icon(Icons.close, color: accent.withValues(alpha: 0.6), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'PERFIL Y DIAGNÓSTICO',
-                        style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 14, letterSpacing: 2, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TabBar(
-                    indicatorColor: accent,
-                    labelColor: accent,
-                    unselectedLabelColor: accent.withValues(alpha: 0.4),
-                    labelStyle: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2),
-                    tabs: const [Tab(text: 'INVENTARIO'), Tab(text: 'MÉTRICAS')],
-                  ),
-                ],
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _InventoryTab(kanas: state.kanas, kanjis: state.kanjis, accent: accent),
+                    _MetricsTab(state: state, accent: accent),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _InventoryTab(kanas: state.kanas, kanjis: state.kanjis, accent: accent),
-                  _MetricsTab(state: state, accent: accent),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -89,71 +88,74 @@ class _InventoryTab extends StatelessWidget {
     final hiragana = kanas.where((k) => !k.isKatakana).toList();
     final katakana = kanas.where((k) => k.isKatakana).toList();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSection('HIRAGANA', hiragana),
-        const SizedBox(height: 16),
-        _buildSection('KATAKANA', katakana),
-        const SizedBox(height: 16),
-        _buildKanjiSection('KANJIS (${kanjis.length})', kanjis),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _SectionHeader('HIRAGANA', accent)),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) => _Cell(character: hiragana[i].character, tier: hiragana[i].tier.name.toUpperCase(), isUnlocked: hiragana[i].isUnlocked, accent: accent),
+              childCount: hiragana.length,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(child: _SectionHeader('KATAKANA', accent)),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) => _Cell(character: katakana[i].character, tier: katakana[i].tier.name.toUpperCase(), isUnlocked: katakana[i].isUnlocked, accent: accent),
+              childCount: katakana.length,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(child: _SectionHeader('KANJIS (${kanjis.length})', accent)),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) => _Cell(
+                character: kanjis[i].character,
+                tier: kanjis[i].tier.name.toUpperCase(),
+                isUnlocked: kanjis[i].isUnlocked,
+                accent: accent,
+                onTap: () {
+                  KanjiDetailModal.show(
+                    context: ctx,
+                    kanji: kanjis[i],
+                    accent: accent,
+                    onForceUnlock: () {},
+                    onReset: () {},
+                    onLock: () {},
+                  );
+                },
+              ),
+              childCount: kanjis.length,
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
     );
   }
+}
 
-  Widget _buildSection(String title, List<KanaModel> items) {
-    return Theme(
-      data: ThemeData(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        title: Text(title, style: TextStyle(color: accent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
-        iconColor: accent,
-        collapsedIconColor: accent.withValues(alpha: 0.5),
-        children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
-            itemCount: items.length,
-            itemBuilder: (ctx, i) => _Cell(character: items[i].character, tier: 'S', isUnlocked: items[i].isUnlocked, accent: accent),
-          ),
-        ],
-      ),
-    );
-  }
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title, this.accent);
+  final String title;
+  final Color accent;
 
-  Widget _buildKanjiSection(String title, List<KanjiModel> items) {
-    return Theme(
-      data: ThemeData(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        title: Text(title, style: TextStyle(color: accent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
-        iconColor: accent,
-        collapsedIconColor: accent.withValues(alpha: 0.5),
-        children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
-            itemCount: items.length > 100 ? 100 : items.length, // Render limitado para no reventar
-            itemBuilder: (ctx, i) => _Cell(
-              character: items[i].character, 
-              tier: 'A', 
-              isUnlocked: items[i].isUnlocked, 
-              accent: accent,
-              onTap: () {
-                KanjiDetailModal.show(
-                  context: ctx,
-                  kanji: items[i],
-                  accent: accent,
-                  onForceUnlock: () {
-                    // TODO: Redirect to 1-shot session
-                  },
-                  onReset: () {},
-                  onLock: () {},
-                );
-              },
-            ),
-          ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      child: Text(
+        title,
+        style: TextStyle(color: accent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2),
       ),
     );
   }

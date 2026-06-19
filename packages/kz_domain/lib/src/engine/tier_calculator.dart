@@ -9,13 +9,21 @@ class TierCalculator {
     if (!isUnlocked) return KanaTier.e;
     
     double score = 0;
-    if (hitRate >= 0.95) score += 50;
-    else if (hitRate >= 0.85) score += 30;
-    else if (hitRate >= 0.70) score += 10;
+    if (hitRate >= 0.95) {
+      score += 50;
+    } else if (hitRate >= 0.85) {
+      score += 30;
+    } else if (hitRate >= 0.70) {
+      score += 10;
+    }
     
-    if (avgMs < 800) score += 50;
-    else if (avgMs < 1200) score += 30;
-    else if (avgMs < 2000) score += 10;
+    if (avgMs < 800) {
+      score += 50;
+    } else if (avgMs < 1200) {
+      score += 30;
+    } else if (avgMs < 2000) {
+      score += 10;
+    }
 
     if (score >= 90) return KanaTier.s;
     if (score >= 70) return KanaTier.a;
@@ -55,23 +63,36 @@ class TierCalculator {
 
     // Fórmulas base (simplificadas para el PRD)
     double score = 0;
-    if (hitRate >= 0.95) score += 50;
-    else if (hitRate >= 0.85) score += 30;
-    else if (hitRate >= 0.70) score += 10;
+    if (hitRate >= 0.95) {
+      score += 50;
+    } else if (hitRate >= 0.85) {
+      score += 30;
+    } else if (hitRate >= 0.70) {
+      score += 10;
+    }
     
-    if (avgMs < 800) score += 50;
-    else if (avgMs < 1200) score += 30;
-    else if (avgMs < 2000) score += 10;
+    if (avgMs < 800) {
+      score += 50;
+    } else if (avgMs < 1200) {
+      score += 30;
+    } else if (avgMs < 2000) {
+      score += 10;
+    }
 
     String candidateTier = 'E';
-    if (score >= 90) candidateTier = 'S';
-    else if (score >= 70) candidateTier = 'A';
-    else if (score >= 50) candidateTier = 'B';
-    else if (score >= 30) candidateTier = 'C';
-    else if (score >= 10) candidateTier = 'D';
+    if (score >= 90) {
+      candidateTier = 'S';
+    } else if (score >= 70) {
+      candidateTier = 'A';
+    } else if (score >= 50) {
+      candidateTier = 'B';
+    } else if (score >= 30) {
+      candidateTier = 'C';
+    } else if (score >= 10) {
+      candidateTier = 'D';
+    }
 
     // FÓRMULAS DE BLOQUEO ANTI-CONFIANZA
-    const totalBaseKanas = 46; // Sin variantes
     const totalAllKanas = 104; // Hiragana + Katakana + variantes
 
     // El Rango S está bloqueado hasta que el 100% de las Kanas base (incluyendo variantes) estén desbloqueadas.

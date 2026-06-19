@@ -27,7 +27,7 @@ class KanjiDetailModal extends StatefulWidget {
     required VoidCallback onReset,
     required VoidCallback onLock,
   }) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -66,6 +66,18 @@ class _KanjiDetailModalState extends State<KanjiDetailModal> with SingleTickerPr
     final k = widget.kanji;
     final isLocked = !k.isUnlocked;
 
+    int hits = 0;
+    int errors = 0;
+    for (final b in k.historyBlob) {
+      if ((b & 0x8000) != 0) {
+        hits++;
+      } else {
+        errors++;
+      }
+    }
+    final double speedSec = k.averageMs / 1000.0;
+    final String tierName = k.tier.name.toUpperCase();
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
@@ -80,7 +92,7 @@ class _KanjiDetailModalState extends State<KanjiDetailModal> with SingleTickerPr
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(isLocked ? 'ESTADO: BLOQUEADO' : 'ESTADO: ACTIVO [TIER S]', style: TextStyle(color: isLocked ? CyberTheme.textNeutral : widget.accent, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(isLocked ? 'ESTADO: BLOQUEADO' : 'ESTADO: ACTIVO [TIER $tierName]', style: TextStyle(color: isLocked ? CyberTheme.textNeutral : widget.accent, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold)),
                 IconButton(icon: Icon(Icons.close, color: widget.accent.withValues(alpha: 0.6)), onPressed: () => Navigator.pop(context)),
               ],
             ),
@@ -164,9 +176,9 @@ class _KanjiDetailModalState extends State<KanjiDetailModal> with SingleTickerPr
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _Stat('ACIERTOS', '42', widget.accent),
-                        _Stat('ERRORES', '3', CyberTheme.errorRed),
-                        _Stat('VELOCIDAD', '1.2s', widget.accent),
+                        _Stat('ACIERTOS', '$hits', widget.accent),
+                        _Stat('ERRORES', '$errors', CyberTheme.errorRed),
+                        _Stat('VELOCIDAD', '${speedSec.toStringAsFixed(1)}s', widget.accent),
                       ],
                     ),
                   ),

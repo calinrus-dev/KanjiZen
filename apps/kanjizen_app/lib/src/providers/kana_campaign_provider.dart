@@ -48,29 +48,65 @@ class KanaCampaignNotifier extends StateNotifier<AsyncValue<List<KanaLevelModel>
   }
 
   Future<void> _seedLevels() async {
-    final vA = ['あ','い','う','え','お'];
-    final vK = ['か','き','く','け','こ'];
-    final vS = ['さ','し','す','せ','そ'];
-    final vG = ['が','ぎ','ぐ','げ','ご'];
-    final vZ = ['ざ','じ','ず','ぜ','ぞ'];
+    final seed = <KanaLevelEntity>[];
+    const allKanas = KanaSeedData.all;
+    
+    // Separar en Hiragana y Katakana
+    final hiras = allKanas.where((k) => !k.isKatakana).toList();
+    final katas = allKanas.where((k) => k.isKatakana).toList();
+    
+    for (int lvl = 1; lvl <= 100; lvl++) {
+      final List<String> targets = [];
+      final String mode;
+      final bool isBoss = lvl % 5 == 0;
+      
+      if (lvl <= 50) {
+        mode = 'hiragana';
+        if (isBoss) {
+          final startIdx = ((lvl ~/ 5 - 1) * 10).clamp(0, hiras.length - 1);
+          final endIdx = (startIdx + 15).clamp(0, hiras.length);
+          targets.addAll(hiras.sublist(startIdx, endIdx).map((k) => k.character));
+        } else {
+          final startIdx = ((lvl - 1 - (lvl ~/ 5)) * 4).clamp(0, hiras.length - 1);
+          final endIdx = (startIdx + 4).clamp(0, hiras.length);
+          targets.addAll(hiras.sublist(startIdx, endIdx).map((k) => k.character));
+        }
+      } else {
+        mode = 'katakana';
+        final relLvl = lvl - 50;
+        if (isBoss) {
+          final startIdx = ((relLvl ~/ 5 - 1) * 10).clamp(0, katas.length - 1);
+          final endIdx = (startIdx + 15).clamp(0, katas.length);
+          targets.addAll(katas.sublist(startIdx, endIdx).map((k) => k.character));
+        } else {
+          final startIdx = ((relLvl - 1 - (relLvl ~/ 5)) * 4).clamp(0, katas.length - 1);
+          final endIdx = (startIdx + 4).clamp(0, katas.length);
+          targets.addAll(katas.sublist(startIdx, endIdx).map((k) => k.character));
+        }
+      }
 
-    final seed = [
-      KanaLevelEntity()..levelId = 1..mode = 'hiragana'..targetCharacters = vA..isUnlocked = true, // Nivel 1
-      KanaLevelEntity()..levelId = 2..mode = 'hiragana'..targetCharacters = vK..isUnlocked = false, // Nivel 2
-      KanaLevelEntity()..levelId = 3..mode = 'hiragana'..targetCharacters = [...vA, ...vK]..isBoss = true..isUnlocked = false, // Nivel 3
-      KanaLevelEntity()..levelId = 4..mode = 'hiragana'..targetCharacters = vS..isUnlocked = false, // Nivel 4
-      KanaLevelEntity()..levelId = 5..mode = 'hiragana'..targetCharacters = [...vS, ...vA]..isUnlocked = false, // Nivel 5
-      KanaLevelEntity()..levelId = 6..mode = 'hiragana'..targetCharacters = [...vS, ...vA, ...vK]..isBoss = true..isUnlocked = false, // Nivel 6
-      KanaLevelEntity()..levelId = 7..mode = 'hiragana'..targetCharacters = vG..isUnlocked = false, // Nivel 7
-      KanaLevelEntity()..levelId = 8..mode = 'hiragana'..targetCharacters = [...vG, ...vA]..isUnlocked = false, // Nivel 8
-      KanaLevelEntity()..levelId = 9..mode = 'hiragana'..targetCharacters = [...vG, ...vA, ...vK]..isUnlocked = false, // Nivel 9
-      KanaLevelEntity()..levelId = 10..mode = 'hiragana'..targetCharacters = [...vG, ...vA, ...vK, ...vS]..isUnlocked = false, // Nivel 10
-      KanaLevelEntity()..levelId = 11..mode = 'hiragana'..targetCharacters = vZ..isUnlocked = false, // Nivel 11
-    ];
+      if (targets.isEmpty) {
+        targets.addAll(lvl <= 50 
+          ? ['あ', 'い', 'う', 'え', 'お'] 
+          : ['ア', 'イ', 'ウ', 'エ', 'オ']);
+      }
+
+      seed.add(
+        KanaLevelEntity()
+          ..levelId = lvl
+          ..mode = mode
+          ..targetCharacters = targets
+          ..isBoss = isBoss
+          ..stars = 0
+          ..redStars = 0
+          ..isUnlocked = (lvl == 1),
+      );
+    }
+    
     await _repository.seedLevelsIfNeeded(seed);
   }
 
-  /// Evalúa el resultado de una partida y asigna estrellas según los requisitos de tiempo y acierto.
+
   Future<void> evaluateSession({
     required int levelId,
     required double hitRate,
@@ -81,15 +117,32 @@ class KanaCampaignNotifier extends StateNotifier<AsyncValue<List<KanaLevelModel>
     int redStars = 0;
 
     if (hitRate >= 0.8) {
+      final levels = state.value ?? [];
+      final level = levels.where((l) => l.levelId == levelId).firstOrNull;
+      if (level != null) {
+        final repo = CharacterRepository.instance;
+        for (final char in level.targetCharacters) {
+          await repo.unlockKana(char);
+        }
+      }
+
       if (isHardcore) {
-        if (maxTimePerCharMs <= 1000 && maxTimePerCharMs > 0) redStars = 3;
-        else if (maxTimePerCharMs <= 2000 && maxTimePerCharMs > 0) redStars = 2;
-        else redStars = 1;
-        stars = 3; // Hardcore implica 3 estrellas base
+        if (maxTimePerCharMs <= 1000 && maxTimePerCharMs > 0) {
+          redStars = 3;
+        } else if (maxTimePerCharMs <= 2000 && maxTimePerCharMs > 0) {
+          redStars = 2;
+        } else {
+          redStars = 1;
+        }
+        stars = 3;
       } else {
-        if (maxTimePerCharMs <= 2000 && maxTimePerCharMs > 0) stars = 3;
-        else if (maxTimePerCharMs <= 3000 && maxTimePerCharMs > 0) stars = 2;
-        else stars = 1;
+        if (maxTimePerCharMs <= 2000 && maxTimePerCharMs > 0) {
+          stars = 3;
+        } else if (maxTimePerCharMs <= 3000 && maxTimePerCharMs > 0) {
+          stars = 2;
+        } else {
+          stars = 1;
+        }
       }
 
       await updateLevelProgress(levelId, stars, redStars);

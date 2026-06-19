@@ -25,6 +25,8 @@ class GameCharacter {
   }
 }
 
+enum EngineState { welcome, playing, paused }
+
 /// Estado global del juego en sesión.
 class GameState {
   const GameState({
@@ -42,6 +44,7 @@ class GameState {
     this.isLoading = true,
     this.mode = GameMode.hiragana,
     this.timeAttackRemainingMs,
+    this.engineState = EngineState.welcome,
   });
 
   final List<KanaModel> kanas;
@@ -58,6 +61,7 @@ class GameState {
   final bool isLoading;
   final GameMode mode;
   final int? timeAttackRemainingMs;
+  final EngineState engineState;
 
   GameState copyWith({
     List<KanaModel>? kanas,
@@ -74,6 +78,7 @@ class GameState {
     bool? isLoading,
     GameMode? mode,
     int? timeAttackRemainingMs,
+    EngineState? engineState,
   }) => GameState(
     kanas: kanas ?? this.kanas,
     kanjis: kanjis ?? this.kanjis,
@@ -89,6 +94,7 @@ class GameState {
     isLoading: isLoading ?? this.isLoading,
     mode: mode ?? this.mode,
     timeAttackRemainingMs: timeAttackRemainingMs ?? this.timeAttackRemainingMs,
+    engineState: engineState ?? this.engineState,
   );
 }
 
@@ -147,6 +153,9 @@ class GameNotifier extends StateNotifier<GameState> {
       case DeathClock.s5: limit = 5.0; break;
       case DeathClock.s3: limit = 3.0; break;
       case DeathClock.s1_5: limit = 1.5; break;
+      case DeathClock.s1: limit = 1.0; break;
+      case DeathClock.s0_75: limit = 0.75; break;
+      case DeathClock.s0_5: limit = 0.5; break;
     }
     
     if (limit > 0) {
@@ -181,8 +190,8 @@ class GameNotifier extends StateNotifier<GameState> {
     final kanjiEntities = await _repo.getAllKanjis();
     final kanjis = kanjiEntities.map<KanjiModel>(_toKanjiModel).toList();
 
-    if (kanas.isEmpty) {
-      state = state.copyWith(isLoading: false, kanjis: kanjis);
+    if (kanas.isEmpty && kanjis.isEmpty) {
+      state = state.copyWith(isLoading: false);
       return;
     }
 
@@ -240,8 +249,9 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  void onInputChanged(String input) {
-    if (state.currentSequence.isEmpty) return;
+  InputState onInputChanged(String input) {
+    if (state.engineState != EngineState.playing) return InputState.neutral;
+    if (state.currentSequence.isEmpty) return InputState.neutral;
     final current = state.currentSequence[state.currentSequenceIndex];
 
     final lower = input.toLowerCase().trim();
@@ -256,6 +266,8 @@ class GameNotifier extends StateNotifier<GameState> {
     } else {
       state = state.copyWith(inputText: lower, inputState: result);
     }
+    
+    return result;
   }
 
   void _handleSuccess(GameCharacter char) {
@@ -347,7 +359,7 @@ class GameNotifier extends StateNotifier<GameState> {
         ? state.streak / totalAttempts
         : 0.0;
 
-    List<GameCharacter> nextSeq = List.from(state.currentSequence);
+    final nextSeq = List<GameCharacter>.from(state.currentSequence);
     nextSeq[state.currentSequenceIndex] = updatedChar;
 
     state = state.copyWith(
@@ -401,29 +413,63 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(inputText: '', inputState: InputState.neutral);
   }
 
+  void pause() {
+    _timer?.cancel();
+    _timeAttackTimer?.cancel();
+    state = state.copyWith(engineState: EngineState.paused);
+  }
+
+  void welcome() {
+    _timer?.cancel();
+    _timeAttackTimer?.cancel();
+    state = state.copyWith(engineState: EngineState.welcome);
+  }
+
+  void resume() {
+    state = state.copyWith(engineState: EngineState.playing);
+    _startTimer();
+  }
+
   // ─── SRS: selección ponderada 60% Kanas / 40% Kanjis ─────────────────────────
   List<GameCharacter> _generateNextSequence(List<KanaModel> kanas, List<KanjiModel> kanjis, GameCharacter? lastChar) {
     final settings = ref.read(settingsProvider);
-    final sequenceLength = settings.trainingMode == TrainingMode.words ? 4 : 1;
-    List<GameCharacter> seq = [];
+    final sequenceLength = settings.layoutMode == AppLayoutMode.word ? 4 : (settings.layoutMode == AppLayoutMode.text ? 10 : 1);
+    final seq = <GameCharacter>[];
     
-    final validKanjis = kanjis.where((k) => k.isUnlocked && k.srsScore >= 3.0).toList();
+    // Control de Estrangulamiento de Flujo
+    final activeKanjis = kanjis.where((k) => k.isUnlocked && k.historyBlob.isNotEmpty).toList();
+    final isHomogeneous = activeKanjis.isEmpty || activeKanjis.every((k) => k.currentHitRate >= 0.7);
+    
+    List<KanjiModel> poolKanjis;
+    if (isHomogeneous) {
+      poolKanjis = kanjis.where((k) => k.isUnlocked).toList();
+    } else {
+      poolKanjis = activeKanjis.where((k) => k.currentHitRate < 0.7).toList();
+      if (poolKanjis.isEmpty) poolKanjis = activeKanjis;
+    }
     
     for (int i = 0; i < sequenceLength; i++) {
       // 60/40 logic: decide if we inject kana or kanji
       final rand = DateTime.now().microsecondsSinceEpoch % 100;
-      final pickKanji = validKanjis.isNotEmpty && rand < 40;
+      final pickKanji = kanas.isEmpty || (poolKanjis.isNotEmpty && rand < 40);
       
-      if (pickKanji) {
-        final k = _pickNextKanji(validKanjis, lastChar?.character ?? '');
+      if (pickKanji && poolKanjis.isNotEmpty) {
+        final k = _pickNextKanji(poolKanjis, lastChar?.character ?? '');
         seq.add(GameCharacter(kanji: k));
-      } else {
+      } else if (kanas.isNotEmpty) {
         final k = _pickNextKana(kanas, lastChar?.character ?? '');
         seq.add(GameCharacter(kana: k));
       }
     }
     
-    return seq.isNotEmpty ? seq : [GameCharacter(kana: kanas.first)]; // Fallback
+    if (seq.isNotEmpty) return seq;
+    
+    if (kanas.isNotEmpty) {
+      return [GameCharacter(kana: kanas.first)];
+    } else if (kanjis.isNotEmpty) {
+      return [GameCharacter(kanji: kanjis.first)];
+    }
+    return const [];
   }
 
   KanaModel _pickNextKana(List<KanaModel> pool, String excludeChar) {
@@ -485,6 +531,7 @@ class GameNotifier extends StateNotifier<GameState> {
       kunyomi: e.kunyomi,
       meanings: e.meanings,
       radicals: e.radicals,
+      radical: e.radical,
       isUnlocked: e.isUnlocked,
       historyBlob: List<int>.from(e.historyBlob),
       svgPaths: List<String>.from(e.svgPaths),

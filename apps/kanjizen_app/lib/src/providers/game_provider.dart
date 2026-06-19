@@ -7,6 +7,7 @@ import 'package:kz_domain/kz_domain.dart';
 class GameState {
   const GameState({
     this.kanas = const [],
+    this.kanjis = const [],
     this.currentKana,
     this.inputText = '',
     this.inputState = InputState.neutral,
@@ -20,6 +21,7 @@ class GameState {
   });
 
   final List<KanaModel> kanas;
+  final List<KanjiModel> kanjis;
   final KanaModel? currentKana;
   final String inputText;
   final InputState inputState;
@@ -33,6 +35,7 @@ class GameState {
 
   GameState copyWith({
     List<KanaModel>? kanas,
+    List<KanjiModel>? kanjis,
     KanaModel? currentKana,
     String? inputText,
     InputState? inputState,
@@ -45,6 +48,7 @@ class GameState {
     GameMode? mode,
   }) => GameState(
     kanas: kanas ?? this.kanas,
+    kanjis: kanjis ?? this.kanjis,
     currentKana: currentKana ?? this.currentKana,
     inputText: inputText ?? this.inputText,
     inputState: inputState ?? this.inputState,
@@ -97,8 +101,11 @@ class GameNotifier extends StateNotifier<GameState> {
         .map(_toModel)
         .toList();
 
+    final kanjiEntities = await _repo.getAllKanjis();
+    final kanjis = kanjiEntities.map<KanjiModel>(_toKanjiModel).toList();
+
     if (kanas.isEmpty) {
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, kanjis: kanjis);
       return;
     }
 
@@ -106,6 +113,7 @@ class GameNotifier extends StateNotifier<GameState> {
     _questionStartMs = DateTime.now().millisecondsSinceEpoch;
     state = state.copyWith(
       kanas: kanas,
+      kanjis: kanjis,
       currentKana: kanas.first,
       isLoading: false,
       inputText: '',
@@ -247,6 +255,21 @@ class GameNotifier extends StateNotifier<GameState> {
       isKatakana: e.isKatakana,
       linkedKanaCharacter: e.linkedKanaCharacter,
       isDakutenOrHandakuten: e.isDakutenOrHandakuten,
+      isUnlocked: e.isUnlocked,
+      historyBlob: List<int>.from(e.historyBlob),
+      svgPaths: List<String>.from(e.svgPaths),
+      currentHitRate: e.currentHitRate,
+      averageMs: e.averageMs,
+    );
+  }
+
+  KanjiModel _toKanjiModel(KanjiEntity e) {
+    return KanjiModel(
+      character: e.character,
+      onyomi: e.onyomi,
+      kunyomi: e.kunyomi,
+      meanings: e.meanings,
+      radicals: e.radicals,
       isUnlocked: e.isUnlocked,
       historyBlob: List<int>.from(e.historyBlob),
       svgPaths: List<String>.from(e.svgPaths),

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:isolate';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../entities/kana_entity.dart';
@@ -21,20 +23,36 @@ class DatabaseInitializerService {
     return _instance!;
   }
 
-  /// Devuelve true si la BD ya tiene datos sembrados.
-  static Future<bool> isSeeded() async {
+  /// Devuelve true si la BD ya tiene datos de Kana sembrados.
+  static Future<bool> isKanaSeeded() async {
     final isar = await openDb();
     return await isar.kanaEntitys.count() > 0;
   }
 
-  /// Siembra todos los Kana en un Isolate para no bloquear la UI.
-  static Future<void> seedInBackground() async {
-    final seeded = await isSeeded();
-    if (seeded) return;
-    await Isolate.run(_seedIsolate);
+  static Future<bool> isKanjiSeeded() async {
+    final isar = await openDb();
+    return await isar.kanjiEntitys.count() > 0;
   }
 
-  static Future<void> _seedIsolate() async {
+  /// Siembra todos los Kana y Kanji en un Isolate para no bloquear la UI.
+  static Future<void> seedInBackground() async {
+    final kanaSeeded = await isKanaSeeded();
+    if (!kanaSeeded) {
+      await Isolate.run(_seedKanaIsolate);
+    }
+
+    final kanjiSeeded = await isKanjiSeeded();
+    if (!kanjiSeeded) {
+      try {
+        final kanjiJsonStr = await rootBundle.loadString('assets/data/kanji_seed.json');
+        await Isolate.run(() => _seedKanjiIsolate(kanjiJsonStr));
+      } catch (e) {
+        print('Error cargando kanji_seed.json: $e');
+      }
+    }
+  }
+
+  static Future<void> _seedKanaIsolate() async {
     final dir = await getApplicationDocumentsDirectory();
     final isar = await Isar.open(
       [KanaEntitySchema, KanjiEntitySchema],
@@ -64,10 +82,45 @@ class DatabaseInitializerService {
       return e;
     }).toList();
 
-    // Carga en bloques de 1000 (spec: seedBatchSize)
     for (var i = 0; i < entities.length; i += 1000) {
       final chunk = entities.skip(i).take(1000).toList();
       await isar.writeTxn(() async => isar.kanaEntitys.putAll(chunk));
+    }
+    await isar.close();
+  }
+
+  static Future<void> _seedKanjiIsolate(String jsonStr) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final isar = await Isar.open(
+      [KanaEntitySchema, KanjiEntitySchema],
+      directory: dir.path,
+      inspector: false,
+    );
+
+    final List<dynamic> data = jsonDecode(jsonStr);
+    final List<KanjiEntity> entities = [];
+
+    for (final item in data) {
+      final map = item as Map<String, dynamic>;
+      
+      final e = KanjiEntity()
+        ..character = map['character'] as String
+        ..onyomi = List<String>.from(map['onyomi'])
+        ..kunyomi = List<String>.from(map['kunyomi'])
+        ..meanings = List<String>.from(map['meanings'])
+        ..radicals = List<String>.from(map['radicals'])
+        ..svgPaths = List<String>.from(map['svgPaths'])
+        ..isUnlocked = true // TODO: Bloquear según progresión después
+        ..historyBlob = []
+        ..currentHitRate = 0.0
+        ..averageMs = 0;
+        
+      entities.add(e);
+    }
+
+    for (var i = 0; i < entities.length; i += 1000) {
+      final chunk = entities.skip(i).take(1000).toList();
+      await isar.writeTxn(() async => isar.kanjiEntitys.putAll(chunk));
     }
     await isar.close();
   }

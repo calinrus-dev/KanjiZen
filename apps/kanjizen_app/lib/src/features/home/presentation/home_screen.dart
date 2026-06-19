@@ -193,7 +193,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildInventoryDrawer(GameState game) {
     return Drawer(
       backgroundColor: CyberTheme.bgObsidian,
-      child: InventoryScreen(kanas: game.kanas),
+      child: InventoryScreen(
+        kanas: game.kanas,
+        kanjis: game.kanjis,
+      ),
     );
   }
 }

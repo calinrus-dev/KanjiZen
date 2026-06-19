@@ -17,6 +17,13 @@ class CharacterRepository {
     return isar.kanaEntitys.where().findAll();
   }
 
+  // ─── Kanji reads ──────────────────────────────────────────────────────────
+
+  Future<List<KanjiEntity>> getAllKanjis() async {
+    final isar = await _db;
+    return isar.kanjiEntitys.where().findAll();
+  }
+
   Future<List<KanaEntity>> getUnlockedKanas() async {
     final isar = await _db;
     return isar.kanaEntitys.filter().isUnlockedEqualTo(true).findAll();

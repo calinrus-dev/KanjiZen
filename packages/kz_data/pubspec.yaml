@@ -28,3 +28,6 @@ dev_dependencies:
   # No mezclar con freezed ni riverpod_generator en este paquete.
   build_runner: ^2.4.13
   isar_generator: ^3.1.0+1
+  xml: ^6.3.0
+  archive: ^3.6.1
+  http: ^1.2.0

@@ -54,6 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final game = ref.watch(gameProvider);
+    final settings = ref.watch(settingsProvider);
     final accent = CyberTheme.defaultAccent;
 
     return Scaffold(
@@ -80,7 +81,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     errors: game.errors,
                     accentColor: accent,
                     onMenuTap: () => Scaffold.of(ctx).openDrawer(),
-                    onSettingsTap: () => Scaffold.of(ctx).openEndDrawer(),
+                    onInventoryTap: () => Scaffold.of(ctx).openEndDrawer(),
+                    onSettingsTap: () {
+                      SettingsModal.show(
+                        context: context,
+                        enableStrokeAnimation: settings.enableStrokeAnimation,
+                        enableAudio: settings.enableAudio,
+                        onToggleStrokeAnimation: () => ref.read(settingsProvider.notifier).toggleStrokeAnimation(),
+                        onToggleAudio: () => ref.read(settingsProvider.notifier).toggleAudio(),
+                      );
+                    },
                   ),
                 ),
 

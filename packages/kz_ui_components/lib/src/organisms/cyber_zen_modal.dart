@@ -12,24 +12,30 @@ class CyberZenModal extends StatefulWidget {
   const CyberZenModal({
     super.key,
     required this.kana,
+    required this.enableStrokeAnimation,
     required this.onPlayAudio,
   });
 
   final KanaModel kana;
+  final bool enableStrokeAnimation;
   final VoidCallback onPlayAudio;
 
-  static void show(
-    BuildContext context,
-    KanaModel kana,
-    VoidCallback onPlayAudio,
-  ) {
+  static void show({
+    required BuildContext context,
+    required KanaModel kana,
+    required bool enableStrokeAnimation,
+    required VoidCallback onPlayAudio,
+  }) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Cerrar',
       barrierColor: Colors.black87,
-      pageBuilder: (ctx, anim1, anim2) =>
-          CyberZenModal(kana: kana, onPlayAudio: onPlayAudio),
+      pageBuilder: (ctx, anim1, anim2) => CyberZenModal(
+        kana: kana,
+        enableStrokeAnimation: enableStrokeAnimation,
+        onPlayAudio: onPlayAudio,
+      ),
       transitionBuilder: (ctx, anim1, anim2, child) {
         return FadeTransition(opacity: anim1, child: child);
       },
@@ -52,7 +58,11 @@ class _CyberZenModalState extends State<CyberZenModal>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-    _anim.forward();
+    if (widget.enableStrokeAnimation) {
+      _anim.forward();
+    } else {
+      _anim.value = 1.0;
+    }
     // Play audio automatically
     widget.onPlayAudio();
   }
@@ -100,7 +110,9 @@ class _CyberZenModalState extends State<CyberZenModal>
                     IconButton(
                       icon: const Icon(Icons.volume_up, color: Colors.white70),
                       onPressed: () {
-                        _anim.forward(from: 0.0);
+                        if (widget.enableStrokeAnimation) {
+                          _anim.forward(from: 0.0);
+                        }
                         widget.onPlayAudio();
                       },
                     ),

@@ -126,8 +126,10 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void _handleSuccess(KanaModel kana) {
-    // 🔊 Audio Feedback Inmediato
-    AudioFeedbackService.instance.playReading(kana.character);
+    // 🔊 Audio Feedback Inmediato respetando ajustes
+    if (ref.read(settingsProvider).enableAudio) {
+      AudioFeedbackService.instance.playReading(kana.character);
+    }
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final responseMs = _questionStartMs != null ? now - _questionStartMs! : 500;

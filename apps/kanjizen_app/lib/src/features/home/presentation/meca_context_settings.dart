@@ -10,7 +10,10 @@ class MecaContextSettings extends ConsumerWidget {
   static void show(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF000000), // OLED black
+      shape: const Border(
+        top: BorderSide(color: Color(0xFF00FFFF), width: 1.5),
+      ),
       isScrollControlled: true,
       builder: (_) => const MecaContextSettings(),
     );
@@ -22,13 +25,10 @@ class MecaContextSettings extends ConsumerWidget {
     final accent = _getAccentColor(settings.accentColor);
 
     return Container(
-      decoration: BoxDecoration(
-        color: CyberTheme.bgObsidian.withValues(alpha: 0.95),
-        border: Border(top: BorderSide(color: accent.withValues(alpha: 0.3))),
-      ),
       padding: EdgeInsets.only(
         top: 24,
-        left: 24, right: 24,
+        left: 24,
+        right: 24,
         bottom: MediaQuery.of(context).padding.bottom + 24,
       ),
       child: Column(
@@ -39,8 +39,14 @@ class MecaContextSettings extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'MECA 1.0 / CONFIGURACIÓN CONTEXTUAL',
-                style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                'MECA 1.0 — CONFIGURACIÓN',
+                style: TextStyle(
+                  color: accent,
+                  fontFamily: 'Courier',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
               ),
               GestureDetector(
                 onTap: () => Navigator.pop(context),
@@ -49,91 +55,113 @@ class MecaContextSettings extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _SettingRow(
-            label: 'MODO DE GENERACIÓN DEL POZO',
-            value: settings.poolMode == PoolMode.auto ? 'AUTO' : 'CUSTOM',
-            accent: accent,
-            onTap: () {
-              Navigator.pop(context);
-              MecaPoolSettings.show(context);
-            },
+          _buildSettingsRow(
+            label: 'POZO DE GENERACIÓN',
+            control: GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                MecaPoolSettings.show(context);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white24),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  settings.poolMode == PoolMode.auto ? 'AUTO' : 'CUSTOM',
+                  style: TextStyle(
+                    color: accent,
+                    fontFamily: 'Courier',
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
-          _SettingRow(
-            label: 'LAYOUT VISUAL',
-            value: settings.layoutMode.name.toUpperCase(),
-            accent: accent,
-            onTap: () {
-              final next = switch (settings.layoutMode) {
-                AppLayoutMode.syllable => AppLayoutMode.word,
-                AppLayoutMode.word => AppLayoutMode.text,
-                AppLayoutMode.text => AppLayoutMode.syllable,
-              };
-              ref.read(settingsProvider.notifier).setLayoutMode(next);
-            },
+          const SizedBox(height: 12),
+          _buildSettingsRow(
+            label: 'TAMAÑO DE REJILLA / LAYOUT',
+            control: _CyberSegmentedControl<GridScale>(
+              groupValue: settings.gridScale,
+              children: const {
+                GridScale.sl: 'SL',
+                GridScale.l: 'L',
+                GridScale.xl: 'XL',
+                GridScale.auto: 'AUTO',
+              },
+              onValueChanged: (val) {
+                ref.read(settingsProvider.notifier).setGridScale(val);
+              },
+              accentColor: accent,
+            ),
           ),
-          const SizedBox(height: 16),
-          _SettingRow(
-            label: 'RELOJ DE LA MUERTE (DEATH CLOCK)',
-            value: settings.deathClock == DeathClock.off ? 'OFF' : '${settings.deathClock.name.replaceAll('s', '').replaceAll('_', '.')}s',
-            accent: accent,
-            onTap: () {
-              final next = switch (settings.deathClock) {
-                DeathClock.off => DeathClock.s5,
-                DeathClock.s5 => DeathClock.s3,
-                DeathClock.s3 => DeathClock.s1_5,
-                DeathClock.s1_5 => DeathClock.s1,
-                DeathClock.s1 => DeathClock.s0_75,
-                DeathClock.s0_75 => DeathClock.s0_5,
-                DeathClock.s0_5 => DeathClock.off,
-              };
-              ref.read(settingsProvider.notifier).setDeathClock(next);
-            },
+          const SizedBox(height: 12),
+          _buildSettingsRow(
+            label: 'RELOJ DE LA MUERTE',
+            control: _CyberSegmentedControl<DeathClock>(
+              groupValue: settings.deathClock,
+              children: const {
+                DeathClock.off: 'OFF',
+                DeathClock.s1: '1s',
+                DeathClock.s3: '3s',
+                DeathClock.s5: '5s',
+              },
+              onValueChanged: (val) {
+                ref.read(settingsProvider.notifier).setDeathClock(val);
+              },
+              accentColor: accent,
+            ),
           ),
-          const SizedBox(height: 16),
-          _SettingRow(
-            label: 'TIEMPO DE SESIÓN',
-            value: '${settings.sessionMinutes} MIN',
-            accent: accent,
-            onTap: () {
-              final next = settings.sessionMinutes >= 5 ? 1 : settings.sessionMinutes + 1;
-              ref.read(settingsProvider.notifier).setSessionMinutes(next);
-            },
-          ),
-          const SizedBox(height: 16),
-          _SettingRow(
+          const SizedBox(height: 12),
+          _buildSettingsRow(
             label: 'ASISTENCIA ROMAJI',
-            value: settings.romajiAssist ? 'ON (3 fallos)' : 'OFF',
-            accent: accent,
-            onTap: () {
-              ref.read(settingsProvider.notifier).toggleRomajiAssist();
-            },
+            control: _OledToggleSwitch(
+              value: settings.romajiAssist,
+              onChanged: (_) {
+                ref.read(settingsProvider.notifier).toggleRomajiAssist();
+              },
+              activeColor: accent,
+            ),
           ),
-          const SizedBox(height: 16),
-          _SettingRow(
-            label: 'MODO HARDCORE (VIDAS)',
-            value: settings.hardcoreMode ? '${settings.hardcoreLives} VIDAS' : 'OFF',
-            accent: accent,
-            onTap: () {
-              if (!settings.hardcoreMode) {
+          const SizedBox(height: 12),
+          _buildSettingsRow(
+            label: 'MODO HARDCORE',
+            control: _OledToggleSwitch(
+              value: settings.hardcoreMode,
+              onChanged: (_) {
                 ref.read(settingsProvider.notifier).toggleHardcoreMode();
-                ref.read(settingsProvider.notifier).setHardcoreLives(3);
-              } else if (settings.hardcoreLives >= 10) {
-                ref.read(settingsProvider.notifier).toggleHardcoreMode();
-              } else {
-                ref.read(settingsProvider.notifier).setHardcoreLives(settings.hardcoreLives + 1);
-              }
-            },
+              },
+              activeColor: accent,
+            ),
           ),
-          const SizedBox(height: 16),
-          _SettingRow(
-            label: 'ANIMACIÓN SÍNCRONA DE TRAZADO',
-            value: settings.enableStrokeAnimation ? 'ON' : 'OFF',
-            accent: accent,
-            onTap: () {
-              // We could add toggleStrokeAnimation to settings
-            },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsRow({required String label, required Widget control}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontFamily: 'Courier',
+                fontSize: 10,
+                letterSpacing: 1.0,
+              ),
+            ),
           ),
+          const SizedBox(width: 16),
+          control,
         ],
       ),
     );
@@ -141,42 +169,130 @@ class MecaContextSettings extends ConsumerWidget {
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 }
 
-class _SettingRow extends StatelessWidget {
-  const _SettingRow({required this.label, required this.value, required this.accent, required this.onTap});
-  final String label;
-  final String value;
-  final Color accent;
-  final VoidCallback onTap;
+class _OledToggleSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color activeColor;
+
+  const _OledToggleSwitch({
+    required this.value,
+    required this.onChanged,
+    required this.activeColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        color: Colors.transparent,
-        child: Row(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 40,
+        height: 20,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: value
+              ? activeColor.withValues(alpha: 0.2)
+              : const Color(0xFF222222),
+          border: Border.all(
+            color: value ? activeColor : const Color(0xFF333333),
+            width: 1.5,
+          ),
+        ),
+        child: Stack(
           children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(color: Colors.white70, fontFamily: 'Courier', fontSize: 11),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeInOut,
+              left: value ? 22 : 2,
+              top: 1.5,
+              child: Container(
+                width: 13,
+                height: 13,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? activeColor : const Color(0xFF666666),
+                ),
               ),
             ),
-            Text(
-              '[$value]',
-              style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.bold),
-            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CyberSegmentedControl<T> extends StatelessWidget {
+  final T groupValue;
+  final Map<T, String> children;
+  final ValueChanged<T> onValueChanged;
+  final Color accentColor;
+
+  const _CyberSegmentedControl({
+    required this.groupValue,
+    required this.children,
+    required this.onValueChanged,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 210),
+      height: 28,
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: children.entries.map((entry) {
+            final isSelected = entry.key == groupValue;
+            final itemWidth = 208.0 / children.length;
+            return SizedBox(
+              width: itemWidth,
+              height: double.infinity,
+              child: GestureDetector(
+                onTap: () => onValueChanged(entry.key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  alignment: Alignment.center,
+                  color: isSelected
+                      ? accentColor.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  child: Text(
+                    entry.value,
+                    style: TextStyle(
+                      color: isSelected ? accentColor : Colors.white60,
+                      fontFamily: 'Courier',
+                      fontSize: 8.5,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );

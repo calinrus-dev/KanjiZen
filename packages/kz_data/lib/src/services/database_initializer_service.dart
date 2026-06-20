@@ -49,7 +49,7 @@ class DatabaseInitializerService {
             ..isKatakana = s.isKatakana
             ..linkedKanaCharacter = s.linkedKanaCharacter
             ..isDakutenOrHandakuten = s.isDakutenOrHandakuten
-            ..isUnlocked = const ['あ', 'い', 'う', 'え', 'お', 'ア', 'イ', 'ウ', 'エ', 'オ'].contains(s.character)
+            ..isUnlocked = const ['あ', 'い', 'う', 'え', 'お'].contains(s.character)
             ..historyBlob = []
             ..svgPaths = s.character == 'あ'
                 ? [
@@ -88,6 +88,23 @@ class DatabaseInitializerService {
               ..historyBlob = []
               ..currentHitRate = 0.0
               ..averageMs = 0;
+
+            final radicalsList = e.radicals;
+            if (map.containsKey('radical')) {
+              e.radical = map['radical'] as String;
+            } else if (radicalsList.isNotEmpty) {
+              e.radical = radicalsList.first;
+            } else {
+              e.radical = '';
+            }
+
+            e.jlpt = map.containsKey('jlpt') ? map['jlpt'] as int : 0;
+            e.joyo = map.containsKey('joyo') ? map['joyo'] as int : 0;
+            e.isJinmeiyo = map.containsKey('isJinmeiyo') ? map['isJinmeiyo'] as bool : false;
+            e.kanjidicTranslations = map.containsKey('kanjidicTranslations') 
+                ? List<String>.from(map['kanjidicTranslations'] as Iterable<dynamic>) 
+                : [];
+
             entities.add(e);
           }
 

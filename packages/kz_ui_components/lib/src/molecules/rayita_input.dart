@@ -14,6 +14,7 @@ class RayitaInput extends StatefulWidget {
     this.hint = 'romaji...',
     this.accentColor,
     this.focusNode,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
@@ -22,6 +23,7 @@ class RayitaInput extends StatefulWidget {
   final String hint;
   final Color? accentColor;
   final FocusNode? focusNode;
+  final bool readOnly;
 
   @override
   State<RayitaInput> createState() => _RayitaInputState();
@@ -51,6 +53,7 @@ class _RayitaInputState extends State<RayitaInput> {
       controller: widget.controller,
       focusNode: widget.focusNode,
       onChanged: widget.onChanged,
+      readOnly: widget.readOnly,
       autofocus: true,
       textAlign: TextAlign.center,
       style: const TextStyle(

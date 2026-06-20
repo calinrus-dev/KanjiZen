@@ -25,15 +25,16 @@ class KanjiVgPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
 
     final scale = size.width / 109.0; // KanjiVG typically uses a 109x109 grid
+    canvas.save();
     canvas.scale(scale, scale);
 
     final totalPaths = svgPaths.length;
     final currentProgress = progress.value * totalPaths;
-    
+
     for (int i = 0; i < totalPaths; i++) {
       final pathString = svgPaths[i];
       final path = parseSvgPathData(pathString);
-      
+
       if (i < currentProgress.floor()) {
         // Trazo completamente dibujado
         canvas.drawPath(path, paint);
@@ -41,20 +42,25 @@ class KanjiVgPainter extends CustomPainter {
         // Trazo en progreso de dibujo
         final metrics = path.computeMetrics().toList();
         if (metrics.isEmpty) continue;
-        
+
         final localProgress = currentProgress - currentProgress.floor();
         final metric = metrics.first;
-        final extractPath = metric.extractPath(0, metric.length * localProgress);
+        final extractPath = metric.extractPath(
+          0,
+          metric.length * localProgress,
+        );
         canvas.drawPath(extractPath, paint);
       }
       // Los trazos posteriores no se dibujan
     }
+
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant KanjiVgPainter oldDelegate) {
-    return oldDelegate.progress.value != progress.value || 
-           oldDelegate.strokeColor != strokeColor ||
-           oldDelegate.svgPaths != svgPaths;
+    return oldDelegate.progress.value != progress.value ||
+        oldDelegate.strokeColor != strokeColor ||
+        oldDelegate.svgPaths != svgPaths;
   }
 }

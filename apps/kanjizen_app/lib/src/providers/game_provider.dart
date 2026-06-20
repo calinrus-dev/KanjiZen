@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
@@ -11,16 +12,32 @@ class GameCharacter {
 
   bool get isKana => kana != null;
   String get character => kana?.character ?? kanji!.character;
-  String get romaji => kana?.romaji ?? (kanji!.kunyomi.isNotEmpty ? kanji!.kunyomi.first : (kanji!.onyomi.isNotEmpty ? kanji!.onyomi.first : ''));
+  String get romaji =>
+      kana?.romaji ??
+      (kanji!.kunyomi.isNotEmpty
+          ? kanji!.kunyomi.first
+          : (kanji!.onyomi.isNotEmpty ? kanji!.onyomi.first : ''));
   List<int> get historyBlob => kana?.historyBlob ?? kanji!.historyBlob;
   double get currentHitRate => kana?.currentHitRate ?? kanji!.currentHitRate;
   int get averageMs => kana?.averageMs ?? kanji!.averageMs;
 
   GameCharacter copyWithStats(List<int> blob, double hitRate, int avgMs) {
     if (isKana) {
-      return GameCharacter(kana: kana!.copyWith(historyBlob: blob, currentHitRate: hitRate, averageMs: avgMs));
+      return GameCharacter(
+        kana: kana!.copyWith(
+          historyBlob: blob,
+          currentHitRate: hitRate,
+          averageMs: avgMs,
+        ),
+      );
     } else {
-      return GameCharacter(kanji: kanji!.copyWith(historyBlob: blob, currentHitRate: hitRate, averageMs: avgMs));
+      return GameCharacter(
+        kanji: kanji!.copyWith(
+          historyBlob: blob,
+          currentHitRate: hitRate,
+          averageMs: avgMs,
+        ),
+      );
     }
   }
 }
@@ -116,6 +133,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   final _validator = InputValidator();
   final _repo = CharacterRepository.instance;
+  final _random = Random();
   int? _questionStartMs;
   Timer? _timer;
 
@@ -136,7 +154,10 @@ class GameNotifier extends StateNotifier<GameState> {
       final current = state.timeAttackRemainingMs ?? 0;
       if (current <= 0) {
         t.cancel();
-        state = state.copyWith(timeAttackRemainingMs: 0, inputState: InputState.neutral);
+        state = state.copyWith(
+          timeAttackRemainingMs: 0,
+          inputState: InputState.neutral,
+        );
         // La UI debería reaccionar a timeAttackRemainingMs == 0 para bloquear y mostrar el Modal de CPM
       } else {
         state = state.copyWith(timeAttackRemainingMs: current - 1000);
@@ -149,15 +170,29 @@ class GameNotifier extends StateNotifier<GameState> {
     final settings = ref.read(settingsProvider);
     double limit = 0.0;
     switch (settings.deathClock) {
-      case DeathClock.off: limit = 0.0; break;
-      case DeathClock.s5: limit = 5.0; break;
-      case DeathClock.s3: limit = 3.0; break;
-      case DeathClock.s1_5: limit = 1.5; break;
-      case DeathClock.s1: limit = 1.0; break;
-      case DeathClock.s0_75: limit = 0.75; break;
-      case DeathClock.s0_5: limit = 0.5; break;
+      case DeathClock.off:
+        limit = 0.0;
+        break;
+      case DeathClock.s5:
+        limit = 5.0;
+        break;
+      case DeathClock.s3:
+        limit = 3.0;
+        break;
+      case DeathClock.s1_5:
+        limit = 1.5;
+        break;
+      case DeathClock.s1:
+        limit = 1.0;
+        break;
+      case DeathClock.s0_75:
+        limit = 0.75;
+        break;
+      case DeathClock.s0_5:
+        limit = 0.5;
+        break;
     }
-    
+
     if (limit > 0) {
       _timer = Timer(Duration(milliseconds: (limit * 1000).toInt()), () {
         if (!mounted || state.currentSequence.isEmpty) return;
@@ -209,8 +244,14 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   /// Inicializa una partida restringida a los parámetros de un Nivel de Campaña.
-  Future<void> initializeCampaign(KanaLevelModel level, {int? timeLimit}) async {
-    state = state.copyWith(isLoading: true, mode: GameMode.mixed); // El modo visual dependerá de las Kanas
+  Future<void> initializeCampaign(
+    KanaLevelModel level, {
+    int? timeLimit,
+  }) async {
+    state = state.copyWith(
+      isLoading: true,
+      mode: GameMode.mixed,
+    ); // El modo visual dependerá de las Kanas
 
     final entities = await _repo.getAllKanas();
     final kanas = entities
@@ -234,7 +275,7 @@ class GameNotifier extends StateNotifier<GameState> {
       inputText: '',
       inputState: InputState.neutral,
     );
-    
+
     // Configurar el reloj de la muerte si aplica
     if (timeLimit != null && timeLimit > 0) {
       _timer?.cancel();
@@ -261,12 +302,14 @@ class GameNotifier extends StateNotifier<GameState> {
       _handleSuccess(current);
     } else if (result == InputState.error) {
       final now = DateTime.now().millisecondsSinceEpoch;
-      final responseMs = _questionStartMs != null ? now - _questionStartMs! : 500;
+      final responseMs = _questionStartMs != null
+          ? now - _questionStartMs!
+          : 500;
       recordError(current, responseMs);
     } else {
       state = state.copyWith(inputText: lower, inputState: result);
     }
-    
+
     return result;
   }
 
@@ -278,7 +321,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final rawMs = _questionStartMs != null ? now - _questionStartMs! : 500;
-    
+
     // Compensación Cognitiva
     final responseMs = TierCalculator.calculateEffectiveMs(
       rawMs: rawMs.toDouble(),
@@ -330,13 +373,19 @@ class GameNotifier extends StateNotifier<GameState> {
     final totalAttempts = totalHits + state.errors;
     final sessionHitRate = totalAttempts > 0 ? totalHits / totalAttempts : 0.0;
 
+    // Promedio móvil de tiempo de respuesta
+    final prevAttempts = state.streak + state.errors;
+    final newAvgMs = prevAttempts > 0
+        ? ((state.avgMs * prevAttempts + responseMs) ~/ (prevAttempts + 1))
+        : responseMs;
+
     state = state.copyWith(
       currentSequence: nextSeq,
       currentSequenceIndex: nextIdx,
       inputText: '',
       inputState: InputState.neutral,
       streak: state.streak + 1,
-      avgMs: responseMs,
+      avgMs: newAvgMs,
       hitRate: sessionHitRate,
       lastResponseMs: responseMs,
     );
@@ -431,15 +480,25 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   // ─── SRS: selección ponderada 60% Kanas / 40% Kanjis ─────────────────────────
-  List<GameCharacter> _generateNextSequence(List<KanaModel> kanas, List<KanjiModel> kanjis, GameCharacter? lastChar) {
+  List<GameCharacter> _generateNextSequence(
+    List<KanaModel> kanas,
+    List<KanjiModel> kanjis,
+    GameCharacter? lastChar,
+  ) {
     final settings = ref.read(settingsProvider);
-    final sequenceLength = settings.layoutMode == AppLayoutMode.word ? 4 : (settings.layoutMode == AppLayoutMode.text ? 10 : 1);
+    final sequenceLength = settings.layoutMode == AppLayoutMode.word
+        ? 4
+        : (settings.layoutMode == AppLayoutMode.text ? 10 : 1);
     final seq = <GameCharacter>[];
-    
+
     // Control de Estrangulamiento de Flujo
-    final activeKanjis = kanjis.where((k) => k.isUnlocked && k.historyBlob.isNotEmpty).toList();
-    final isHomogeneous = activeKanjis.isEmpty || activeKanjis.every((k) => k.currentHitRate >= 0.7);
-    
+    final activeKanjis = kanjis
+        .where((k) => k.isUnlocked && k.historyBlob.isNotEmpty)
+        .toList();
+    final isHomogeneous =
+        activeKanjis.isEmpty ||
+        activeKanjis.every((k) => k.currentHitRate >= 0.7);
+
     List<KanjiModel> poolKanjis;
     if (isHomogeneous) {
       poolKanjis = kanjis.where((k) => k.isUnlocked).toList();
@@ -447,12 +506,12 @@ class GameNotifier extends StateNotifier<GameState> {
       poolKanjis = activeKanjis.where((k) => k.currentHitRate < 0.7).toList();
       if (poolKanjis.isEmpty) poolKanjis = activeKanjis;
     }
-    
+
     for (int i = 0; i < sequenceLength; i++) {
       // 60/40 logic: decide if we inject kana or kanji
       final rand = DateTime.now().microsecondsSinceEpoch % 100;
       final pickKanji = kanas.isEmpty || (poolKanjis.isNotEmpty && rand < 40);
-      
+
       if (pickKanji && poolKanjis.isNotEmpty) {
         final k = _pickNextKanji(poolKanjis, lastChar?.character ?? '');
         seq.add(GameCharacter(kanji: k));
@@ -461,9 +520,9 @@ class GameNotifier extends StateNotifier<GameState> {
         seq.add(GameCharacter(kana: k));
       }
     }
-    
+
     if (seq.isNotEmpty) return seq;
-    
+
     if (kanas.isNotEmpty) {
       return [GameCharacter(kana: kanas.first)];
     } else if (kanjis.isNotEmpty) {
@@ -480,10 +539,7 @@ class GameNotifier extends StateNotifier<GameState> {
       0,
       (sum, k) => sum + (1.0 - k.currentHitRate).clamp(0.1, 1.0),
     );
-    var rand =
-        (totalWeight * DateTime.now().microsecondsSinceEpoch % 1000) /
-        1000 *
-        totalWeight;
+    var rand = _random.nextDouble() * totalWeight;
 
     for (final k in candidates) {
       rand -= (1.0 - k.currentHitRate).clamp(0.1, 1.0);
@@ -500,7 +556,7 @@ class GameNotifier extends StateNotifier<GameState> {
       0,
       (sum, k) => sum + (1.0 - k.currentHitRate).clamp(0.1, 1.0),
     );
-    var rand = (totalWeight * DateTime.now().microsecondsSinceEpoch % 1000) / 1000 * totalWeight;
+    var rand = _random.nextDouble() * totalWeight;
 
     for (final k in candidates) {
       rand -= (1.0 - k.currentHitRate).clamp(0.1, 1.0);

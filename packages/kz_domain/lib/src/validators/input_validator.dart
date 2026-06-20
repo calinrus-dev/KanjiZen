@@ -36,19 +36,10 @@ class InputValidator {
     if (input.isEmpty) return InputState.neutral;
     if (input == targetRomaji) return InputState.success;
 
-    // Verifica si el input es prefijo válido del romaji objetivo
-    if (targetRomaji.startsWith(input)) return InputState.progress;
-
-    // Verifica alternativas y prefijos multi-carácter
+    // Verifica alternativas COMPLETAS primero (ej. 'si' == 'shi')
+    // IMPORTANTE: debe estar antes que la comprobación de prefijos para no
+    // devolver `progress` cuando el input ya es una alternativa completa válida.
     if (_multiCharRomaji.containsKey(targetRomaji)) {
-      final validInputs = _multiCharRomaji[targetRomaji]!;
-      if (validInputs.contains(input)) return InputState.progress;
-      
-      // Si la alternativa exacta es ingresada (ej. 'si' en vez de 'shi')
-      // lo consideramos completado para no obligar a escribir 'shi'.
-      // Aunque lo ideal es que InputValidator retorne success si match
-      // la alternativa completa.
-      // Para simplificar, revisamos si el input *es* una de las alternativas largas:
       if (input == 'si' && targetRomaji == 'shi') return InputState.success;
       if (input == 'ti' && targetRomaji == 'chi') return InputState.success;
       if (input == 'tu' && targetRomaji == 'tsu') return InputState.success;
@@ -63,6 +54,15 @@ class InputValidator {
       if (input == 'zya' && targetRomaji == 'ja') return InputState.success;
       if (input == 'zyu' && targetRomaji == 'ju') return InputState.success;
       if (input == 'zyo' && targetRomaji == 'jo') return InputState.success;
+    }
+
+    // Verifica si el input es prefijo válido del romaji objetivo
+    if (targetRomaji.startsWith(input)) return InputState.progress;
+
+    // Verifica prefijos de alternativas multi-carácter
+    if (_multiCharRomaji.containsKey(targetRomaji)) {
+      final validInputs = _multiCharRomaji[targetRomaji]!;
+      if (validInputs.contains(input)) return InputState.progress;
     }
 
     return InputState.error;

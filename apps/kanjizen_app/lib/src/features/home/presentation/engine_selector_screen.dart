@@ -1,13 +1,19 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
-import 'package:kz_data/kz_data.dart';
 import 'package:kz_ui_components/kz_ui_components.dart';
-import 'package:kanjizen_app/src/providers/game_provider.dart';
-import 'package:kanjizen_app/src/providers/kanji_srs_provider.dart';
-import 'package:kanjizen_app/src/providers/kana_campaign_provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:kanjizen_app/src/providers/timeline_provider.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/dynamic_terminal_bar.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/meca_input_widget.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/kanji_production_widget.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/kanji_quiz_widget.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/arcade_viewport_widget.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/stroke_validation_widget.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/exercise_report_widget.dart';
 import 'package:kanjizen_app/src/features/home/presentation/general_drawer.dart';
 
 class EngineSelectorScreen extends ConsumerStatefulWidget {
@@ -17,212 +23,178 @@ class EngineSelectorScreen extends ConsumerStatefulWidget {
   ConsumerState<EngineSelectorScreen> createState() => _EngineSelectorScreenState();
 }
 
-class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> {
-  final TextEditingController _inputController = TextEditingController();
-  final FocusNode _inputFocusNode = FocusNode();
+class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> with WidgetsBindingObserver {
+  final ScrollController _scrollController = ScrollController();
+  bool _showSnapToBottom = false;
 
-  // KANA Level campaign state
-  KanaLevelModel? activeLevel;
-  int levelQuestionsAnswered = 0;
-  int levelErrors = 0;
-  int levelSuccesses = 0;
-  int levelMaxResponseMs = 0;
-  bool showLevelSummary = false;
-
-  // KANJI state
-  bool isPlayingKanji = false;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
-    _inputController.dispose();
-    _inputFocusNode.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
   }
 
-  // COMPOSER MODE input validation
-  void _handleInputChanged(
-    String text,
-    EngineMode currentMode,
-    GameState mecaState,
-    GameNotifier mecaNotifier,
-    KanjiSrsState kanjiState,
-    KanjiSrsNotifier kanjiNotifier,
-  ) {
-    final cleanInput = text.toLowerCase().trim();
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Scroll atómico tras el cambio de ViewInsets
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToBottom();
+    });
+  }
 
-    if (currentMode == EngineMode.meca || activeLevel != null) {
-      if (mecaState.currentSequence.isEmpty) return;
-      final current = mecaState.currentSequence[mecaState.currentSequenceIndex];
-      final targetRomaji = current.romaji.toLowerCase().trim();
-      final targetJapanese = current.character.toLowerCase().trim();
-
-      if (cleanInput.isEmpty) {
-        mecaNotifier.clearInput();
-        return;
-      }
-
-      // ACERTO ABSOLUTO
-      if (cleanInput == targetRomaji || cleanInput == targetJapanese) {
-        _inputController.clear();
-        mecaNotifier.onInputChanged(targetRomaji);
-
-        if (activeLevel != null) {
-          setState(() {
-            levelQuestionsAnswered++;
-            levelSuccesses++;
-            final responseMs = mecaState.lastResponseMs;
-            if (responseMs > levelMaxResponseMs) {
-              levelMaxResponseMs = responseMs;
-            }
-          });
-
-          // Verificar fin de nivel
-          if (levelQuestionsAnswered >= activeLevel!.targetCharacters.length) {
-            final hitRate = levelSuccesses / levelQuestionsAnswered;
-            ref.read(kanaCampaignProvider.notifier).evaluateSession(
-              levelId: activeLevel!.levelId,
-              hitRate: hitRate,
-              maxTimePerCharMs: levelMaxResponseMs,
-              isHardcore: ref.read(settingsProvider).hardcoreMode,
-            );
-            mecaNotifier.pause();
-            setState(() {
-              showLevelSummary = true;
-            });
-          }
-        }
-        return;
-      }
-
-      // COMPOSER MODE
-      if (targetRomaji.startsWith(cleanInput) || targetJapanese.startsWith(cleanInput)) {
-        mecaNotifier.onInputChanged(text);
-        return;
-      }
-
-      // FALLO ABSOLUTO
-      _inputController.clear();
-      mecaNotifier.onInputChanged('__wrong_input__');
-
-      if (activeLevel != null) {
-        setState(() {
-          levelQuestionsAnswered++;
-          levelErrors++;
-          final responseMs = mecaState.lastResponseMs;
-          if (responseMs > levelMaxResponseMs) {
-            levelMaxResponseMs = responseMs;
-          }
-        });
-
-        // Verificar fin de nivel
-        if (levelQuestionsAnswered >= activeLevel!.targetCharacters.length) {
-          final hitRate = levelSuccesses / levelQuestionsAnswered;
-          ref.read(kanaCampaignProvider.notifier).evaluateSession(
-            levelId: activeLevel!.levelId,
-            hitRate: hitRate,
-            maxTimePerCharMs: levelMaxResponseMs,
-            isHardcore: ref.read(settingsProvider).hardcoreMode,
-          );
-          mecaNotifier.pause();
-          setState(() {
-            showLevelSummary = true;
-          });
-        }
-      }
-    } else if (currentMode == EngineMode.kanji) {
-      if (kanjiState.activePool.isEmpty) return;
-      final kanji = kanjiState.activePool.first;
-      final phase = kanjiNotifier.getPhaseFor(kanji.srsScore);
-
-      if (cleanInput.isEmpty) return;
-
-      if (phase == KanjiSrsPhase.inversion) {
-        final target = kanji.character.toLowerCase().trim();
-        if (cleanInput == target) {
-          _inputController.clear();
-          kanjiNotifier.recordSuccess(kanji);
-          return;
-        }
-        if (target.startsWith(cleanInput)) {
-          return;
-        }
-        _inputController.clear();
-        kanjiNotifier.recordError(kanji);
-      } else {
-        bool matchesAny(String input, bool isExact) {
-          final clean = input.trim().toLowerCase();
-
-          String toRomaji(String kanaStr) {
-            final sb = StringBuffer();
-            for (var i = 0; i < kanaStr.length; i++) {
-              final char = kanaStr[i];
-              if (char == '.' || char == '-' || char == ' ') continue;
-              final seed = KanaSeedData.all.where((KanaSeed s) => s.character == char).firstOrNull;
-              if (seed != null) {
-                sb.write(seed.romaji);
-              } else {
-                sb.write(char);
-              }
-            }
-            return sb.toString().toLowerCase();
-          }
-
-          // Onyomi
-          for (final onyomi in kanji.onyomi) {
-            final cleanOnyomi = onyomi.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
-            final romajiOnyomi = toRomaji(onyomi);
-            if (isExact) {
-              if (cleanOnyomi == clean || romajiOnyomi == clean) return true;
-            } else {
-              if (cleanOnyomi.startsWith(clean) || romajiOnyomi.startsWith(clean)) return true;
-            }
-          }
-          // Kunyomi
-          for (final kunyomi in kanji.kunyomi) {
-            final cleanKunyomi = kunyomi.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
-            final romajiKunyomi = toRomaji(kunyomi);
-            if (isExact) {
-              if (cleanKunyomi == clean || romajiKunyomi == clean) return true;
-            } else {
-              if (cleanKunyomi.startsWith(clean) || romajiKunyomi.startsWith(clean)) return true;
-            }
-          }
-          // Meanings
-          for (final meaning in kanji.meanings) {
-            final cleanMeaning = meaning.trim().toLowerCase();
-            if (isExact) {
-              if (cleanMeaning == clean) return true;
-            } else {
-              if (cleanMeaning.startsWith(clean)) return true;
-            }
-          }
-          return false;
-        }
-
-        if (matchesAny(cleanInput, true)) {
-          _inputController.clear();
-          kanjiNotifier.recordSuccess(kanji);
-          return;
-        }
-
-        if (matchesAny(cleanInput, false)) {
-          return;
-        }
-
-        _inputController.clear();
-        kanjiNotifier.recordError(kanji);
-      }
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    // Show snap to bottom if scrolled up by more than 100 pixels
+    final scrolledUp = (maxScroll - currentScroll) > 100;
+    if (scrolledUp != _showSnapToBottom) {
+      setState(() {
+        _showSnapToBottom = scrolledUp;
+      });
     }
   }
 
-  void _showContextSettings(BuildContext context, EngineMode mode) {
-    final settings = ref.watch(settingsProvider);
-    final accent = _getAccentColor(settings.accentColor);
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
+  void _showModeSelectorOverlay(BuildContext context, Color accent) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Cerrar selector de modo',
+      barrierColor: Colors.black87,
+      transitionDuration: const Duration(milliseconds: 150),
+      pageBuilder: (ctx, anim1, anim2) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: BoxDecoration(
+                color: const Color(0xFF05060A),
+                border: Border.all(color: accent.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'SELECCIONAR MOTOR DE APRENDIZAJE',
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 10,
+                      fontFamily: 'Courier',
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildOverlayModeBtn(ctx, 'MECA 1.0', EngineMode.meca, accent),
+                  const SizedBox(height: 12),
+                  _buildOverlayModeBtn(ctx, 'KANJI 1.0', EngineMode.kanji, accent),
+                  const SizedBox(height: 12),
+                  _buildOverlayModeBtn(ctx, 'QUIZ 1.0', EngineMode.quiz, accent),
+                  const SizedBox(height: 12),
+                  _buildOverlayModeBtn(ctx, 'ARCADE 1.0', EngineMode.arcade, accent),
+                  const SizedBox(height: 12),
+                  _buildOverlayModeBtn(ctx, 'WRITE 1.0', EngineMode.write, accent),
+                  const SizedBox(height: 12),
+                  _buildLockedOverlayModeBtn('AI_MODE (BLOQUEADO)'),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOverlayModeBtn(BuildContext ctx, String label, EngineMode mode, Color accent) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(timelineProvider.notifier).setEngineMode(mode);
+        Navigator.pop(ctx);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white10),
+          borderRadius: BorderRadius.circular(2),
+          color: Colors.white.withValues(alpha: 0.01),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '[ $label ]',
+          style: TextStyle(
+            color: accent,
+            fontFamily: 'Courier',
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLockedOverlayModeBtn(String label) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(2),
+        color: Colors.transparent,
+      ),
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.lock_outline, color: Colors.white24, size: 14),
+          const SizedBox(width: 8),
+          Text(
+            '[ $label ]',
+            style: const TextStyle(
+              color: Colors.white24,
+              fontFamily: 'Courier',
+              fontSize: 13,
+              letterSpacing: 2,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContextSettings(BuildContext context, EngineMode mode, Color accent) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF05060A),
-      shape: Border(top: BorderSide(color: accent.withValues(alpha: 0.3))),
+      backgroundColor: const Color(0xFF000000), // Pure OLED Black
+      shape: Border(top: BorderSide(color: accent.withValues(alpha: 0.3), width: 1.5)),
+      isScrollControlled: true,
       builder: (_) {
         return Consumer(
           builder: (ctx, refWatch, _) {
@@ -244,7 +216,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        mode == EngineMode.kanji ? 'KANJI 1.0 — CONFIGURACIÓN' : 'CONFIGURACIÓN CONTEXTUAL',
+                        '${mode.name.toUpperCase()} 1.0 — CONFIGURACIÓN',
                         style: TextStyle(
                           color: accent,
                           fontFamily: 'Courier',
@@ -260,102 +232,163 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  if (mode == EngineMode.meca || mode == EngineMode.kana) ...[
+                  if (mode == EngineMode.meca) ...[
                     _buildSettingsRow(
-                      label: 'TIPO DE GENERADOR DE POZO',
-                      value: s.poolMode == PoolMode.auto ? 'AUTO' : 'CUSTOM',
-                      accent: accent,
-                      onTap: () {
-                        n.setPoolMode(s.poolMode == PoolMode.auto ? PoolMode.custom : PoolMode.auto);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSettingsRow(
-                      label: 'TAMAÑO DE RECILLA (LAYOUT)',
-                      value: s.layoutMode.name.toUpperCase(),
-                      accent: accent,
-                      onTap: () {
-                        final next = switch (s.layoutMode) {
-                          AppLayoutMode.syllable => AppLayoutMode.word,
-                          AppLayoutMode.word => AppLayoutMode.text,
-                          AppLayoutMode.text => AppLayoutMode.syllable,
-                        };
-                        n.setLayoutMode(next);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSettingsRow(
-                      label: 'RELOJ DE LA MUERTE (DEATH CLOCK)',
-                      value: s.deathClock == DeathClock.off ? 'OFF' : '${s.deathClock.name.replaceAll('s', '').replaceAll('_', '.')}s',
-                      accent: accent,
-                      onTap: () {
-                        final next = switch (s.deathClock) {
-                          DeathClock.off => DeathClock.s5,
-                          DeathClock.s5 => DeathClock.s3,
-                          DeathClock.s3 => DeathClock.s1_5,
-                          DeathClock.s1_5 => DeathClock.s1,
-                          DeathClock.s1 => DeathClock.s0_75,
-                          DeathClock.s0_75 => DeathClock.s0_5,
-                          DeathClock.s0_5 => DeathClock.off,
-                        };
-                        n.setDeathClock(next);
-                      },
-                    ),
-                  ],
-
-                  if (mode == EngineMode.kanji) ...[
-                    _buildSettingsRow(
-                      label: 'DIBUJO VECTORIAL KANJIVG',
-                      value: s.enableStrokeAnimation ? 'ON' : 'OFF',
-                      accent: accent,
-                      onTap: () => n.toggleStrokeAnimation(),
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-                  _buildSettingsRow(
-                    label: 'ASISTENCIA ROMAJI',
-                    value: s.romajiAssist ? 'ON (${s.romajiThreshold} FALLOS)' : 'OFF',
-                    accent: accent,
-                    onTap: () => n.toggleRomajiAssist(),
-                  ),
-                  if (s.romajiAssist) ...[
-                    const SizedBox(height: 8),
-                    SliderTheme(
-                      data: SliderThemeData(
-                        trackHeight: 1,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        activeTrackColor: accent,
-                        inactiveTrackColor: accent.withValues(alpha: 0.2),
-                        thumbColor: accent,
-                      ),
-                      child: Slider(
-                        value: s.romajiThreshold.toDouble(),
-                        min: 1,
-                        max: 5,
-                        divisions: 4,
-                        onChanged: (val) => n.setRomajiThreshold(val.toInt()),
+                      label: 'TAMAÑO DE REJILLA / LAYOUT',
+                      control: CyberSegmentedControl<GridScale>(
+                        groupValue: s.gridScale,
+                        children: const {
+                          GridScale.sl: 'SL',
+                          GridScale.l: 'L',
+                          GridScale.xl: 'XL',
+                          GridScale.auto: 'AUTO',
+                        },
+                        onValueChanged: (val) => n.setGridScale(val),
+                        accentColor: accent,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'RELOJ DE LA MUERTE',
+                      control: CyberSegmentedControl<DeathClock>(
+                        groupValue: s.deathClock,
+                        children: const {
+                          DeathClock.off: 'OFF',
+                          DeathClock.s1: '1s',
+                          DeathClock.s3: '3s',
+                          DeathClock.s5: '5s',
+                        },
+                        onValueChanged: (val) => n.setDeathClock(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'ASISTENCIA ROMAJI',
+                      control: OledToggleSwitch(
+                        value: s.romajiAssist,
+                        onChanged: (_) => n.toggleRomajiAssist(),
+                        activeColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'MODO HARDCORE (VIDAS)',
+                      control: OledToggleSwitch(
+                        value: s.hardcoreMode,
+                        onChanged: (_) => n.toggleHardcoreMode(),
+                        activeColor: accent,
+                      ),
+                    ),
+                  ] else if (mode == EngineMode.kanji) ...[
+                    _buildSettingsRow(
+                      label: 'VENTANA DE TRABAJO ACTIVA',
+                      control: CyberSegmentedControl<int>(
+                        groupValue: s.kanjiBatchSize,
+                        children: const {
+                          3: 'LOTE 3',
+                          5: 'LOTE 5',
+                          10: 'LOTE 10',
+                        },
+                        onValueChanged: (val) => n.setKanjiBatchSize(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'PROPORCIÓN SRS INYECCIÓN',
+                      control: CyberSegmentedControl<SrsProportion>(
+                        groupValue: s.srsProportion,
+                        children: const {
+                          SrsProportion.ratio80_20: '80/20',
+                          SrsProportion.ratio60_40: '60/40',
+                          SrsProportion.reviewOnly: 'REPASO',
+                        },
+                        onValueChanged: (val) => n.setSrsProportion(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'FILTRO TEMÁTICO SESIÓN',
+                      control: CyberSegmentedControl<KanjiFilterTopic>(
+                        groupValue: s.kanjiFilterTopic,
+                        children: const {
+                          KanjiFilterTopic.grade: 'GRADO',
+                          KanjiFilterTopic.jlpt: 'JLPT',
+                        },
+                        onValueChanged: (val) => n.setKanjiFilterTopic(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                  ] else if (mode == EngineMode.quiz) ...[
+                    _buildSettingsRow(
+                      label: 'DENSIDAD DE MATRIZ INFERIOR',
+                      control: CyberSegmentedControl<QuizDensity>(
+                        groupValue: s.quizDensity,
+                        children: const {
+                          QuizDensity.matrix2x2: '2x2',
+                          QuizDensity.matrix3x2: '3x2',
+                        },
+                        onValueChanged: (val) => n.setQuizDensity(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'FILTRO RADICALES COINCIDENTES',
+                      control: OledToggleSwitch(
+                        value: s.quizMatchRadicals,
+                        onChanged: (_) => n.toggleQuizMatchRadicals(),
+                        activeColor: accent,
+                      ),
+                    ),
+                  ] else if (mode == EngineMode.arcade) ...[
+                    _buildSettingsRow(
+                      label: 'NÚMERO DE CARRILES ACTIVOS',
+                      control: CyberSegmentedControl<int>(
+                        groupValue: s.arcadeLanes,
+                        children: const {
+                          3: '3 CARR.',
+                          4: '4 CARR.',
+                        },
+                        onValueChanged: (val) => n.setArcadeLanes(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'ACELERACIÓN BALÍSTICA PROGRESIVA',
+                      control: OledToggleSwitch(
+                        value: s.arcadeAcceleration,
+                        onChanged: (_) => n.toggleArcadeAcceleration(),
+                        activeColor: accent,
+                      ),
+                    ),
+                  ] else if (mode == EngineMode.write) ...[
+                    _buildSettingsRow(
+                      label: 'TOLERANCIA ANGULAR TRAZO',
+                      control: CyberSegmentedControl<double>(
+                        groupValue: s.writeTolerance,
+                        children: {
+                          15.0: '15°',
+                          25.0: '25°',
+                          35.0: '35°',
+                        },
+                        onValueChanged: (val) => n.setWriteTolerance(val),
+                        accentColor: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsRow(
+                      label: 'GUÍA DE PLANTILLA PASIVA',
+                      control: OledToggleSwitch(
+                        value: s.writeGuideTemplate,
+                        onChanged: (_) => n.toggleWriteGuideTemplate(),
+                        activeColor: accent,
+                      ),
+                    ),
                   ],
-
-                  const SizedBox(height: 16),
-                  _buildSettingsRow(
-                    label: 'MODO HARDCORE (SÚBITO)',
-                    value: s.hardcoreMode ? 'ON (${s.hardcoreLives} VIDAS)' : 'OFF',
-                    accent: accent,
-                    onTap: () {
-                      if (!s.hardcoreMode) {
-                        n.toggleHardcoreMode();
-                        n.setHardcoreLives(3);
-                      } else if (s.hardcoreLives >= 10) {
-                        n.toggleHardcoreMode();
-                      } else {
-                        n.setHardcoreLives(s.hardcoreLives + 1);
-                      }
-                    },
-                  ),
                 ],
               ),
             );
@@ -367,817 +400,469 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> {
 
   Widget _buildSettingsRow({
     required String label,
-    required String value,
-    required Color accent,
-    required VoidCallback onTap,
+    required Widget control,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        color: Colors.transparent,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(color: Colors.white70, fontFamily: 'Courier', fontSize: 11),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontFamily: 'Courier',
+                fontSize: 10,
+                letterSpacing: 1.0,
               ),
             ),
-            Text(
-              '[$value]',
-              style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 16),
+          control,
+        ],
       ),
     );
+  }
+
+  double _calculateActiveGridHeight(List<FeedNode> nodes, double canvasHeight, AppLayoutMode layoutMode) {
+    if (nodes.isEmpty) return 0.0;
+    final lastNode = nodes.last;
+    if (lastNode is! MecaInputNode) return 0.0;
+    final targetCharacters = lastNode.targetCharacters;
+
+    double cellSize = 80.0;
+    if (targetCharacters.length == 1 || layoutMode == AppLayoutMode.syllable) {
+      cellSize = canvasHeight * 0.40;
+    } else {
+      cellSize = canvasHeight * 0.22;
+      final maxAvailableWidth = MediaQuery.of(context).size.width - 32.0;
+      if (cellSize * targetCharacters.length > maxAvailableWidth) {
+        cellSize = maxAvailableWidth / targetCharacters.length;
+      }
+    }
+    return cellSize.clamp(40.0, 220.0);
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final accent = _getAccentColor(settings.accentColor);
-    final currentMode = settings.engineMode;
+    final timelineState = ref.watch(timelineProvider);
+    final activeSession = timelineState.activeSession;
+    final nodes = activeSession.nodes;
 
-    final mecaState = ref.watch(gameProvider);
-    final mecaNotifier = ref.read(gameProvider.notifier);
-
-    final kanjiState = ref.watch(kanjiSrsProvider);
-    final kanjiNotifier = ref.read(kanjiSrsProvider.notifier);
-
-    final campaignState = ref.watch(kanaCampaignProvider);
-
-    // Determinar la telemetría dinámica
-    String telemetryText = '[Racha: 0 | ms: — | A: 0%]';
-    EngineState currentEngineState = EngineState.welcome;
-
-    if (currentMode == EngineMode.meca || activeLevel != null) {
-      currentEngineState = mecaState.engineState;
-      final acc = (mecaState.hitRate * 100).toStringAsFixed(0);
-      telemetryText = '[Racha: ${mecaState.streak} | ms: ${mecaState.avgMs > 0 ? mecaState.avgMs : '—'} | A: $acc%]';
-    } else if (currentMode == EngineMode.kanji) {
-      currentEngineState = kanjiState.engineState;
-      final acc = (kanjiState.hitRate * 100).toStringAsFixed(0);
-      telemetryText = '[Racha: ${kanjiState.streak} | ms: ${kanjiState.avgMs > 0 ? kanjiState.avgMs : '—'} | A: $acc%]';
-    }
-
-    // Altura del Viewport
-    final mediaQuery = MediaQuery.of(context);
-    final keyboardHeight = mediaQuery.viewInsets.bottom;
-    final viewHeight = (mediaQuery.size.height - keyboardHeight - 140.0).clamp(150.0, 520.0);
-
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        if (currentEngineState == EngineState.playing) {
-          if (currentMode == EngineMode.meca || activeLevel != null) {
-            mecaNotifier.pause();
-          } else {
-            kanjiNotifier.pause();
-          }
-        }
+    // Listen for new timeline events to auto-scroll
+    ref.listen<int>(
+      timelineProvider.select((s) => s.activeSession.nodes.length),
+      (_, next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       },
-      child: Scaffold(
-        backgroundColor: Colors.black, // OLED absoluto
-        drawer: GeneralDrawer(accent: accent),
-        body: SafeArea(
-          child: Column(
-            children: [
-              // ── CABECERA COMPACTA ──────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    // Hamburguesa
-                    Builder(
-                      builder: (ctx) => GestureDetector(
-                        onTap: () => Scaffold.of(ctx).openDrawer(),
-                        child: const Icon(Icons.menu, color: Colors.white, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Telemetría
-                    Expanded(
-                      child: Text(
-                        telemetryText,
-                        style: TextStyle(
-                          color: accent.withValues(alpha: 0.5),
-                          fontFamily: 'Courier',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Selector de Modo (Horizontal Scrollable)
-                    Flexible(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _ModeTab('[KANA]', currentMode == EngineMode.kana, accent, () {
-                              setState(() {
-                                activeLevel = null;
-                                isPlayingKanji = false;
-                              });
-                              mecaNotifier.welcome();
-                              kanjiNotifier.welcome();
-                              ref.read(settingsProvider.notifier).setEngineMode(EngineMode.kana);
-                            }),
-                            const SizedBox(width: 8),
-                            _ModeTab('[MECA]', currentMode == EngineMode.meca, accent, () {
-                              setState(() {
-                                activeLevel = null;
-                                isPlayingKanji = false;
-                              });
-                              mecaNotifier.welcome();
-                              kanjiNotifier.welcome();
-                              ref.read(settingsProvider.notifier).setEngineMode(EngineMode.meca);
-                            }),
-                            const SizedBox(width: 8),
-                            _ModeTab('[KANJI]', currentMode == EngineMode.kanji, accent, () {
-                              setState(() {
-                                activeLevel = null;
-                                isPlayingKanji = false;
-                              });
-                              mecaNotifier.welcome();
-                              kanjiNotifier.welcome();
-                              ref.read(settingsProvider.notifier).setEngineMode(EngineMode.kanji);
-                            }),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Ruedecita de Ajustes
-                    GestureDetector(
-                      onTap: () => _showContextSettings(context, currentMode),
-                      child: Icon(Icons.settings_outlined, color: accent, size: 18),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Divider(color: Colors.white12, height: 1),
-
-              // ── CUERPO / VIEWPORT CENTRAL ─────────────────────────────────
-              Expanded(
-                child: Center(
-                  child: AnimatedSize(
-                    duration: const Duration(milliseconds: 150),
-                    child: SizedBox(
-                      height: viewHeight,
-                      width: double.infinity,
-                      child: LayoutBuilder(
-                        builder: (ctx, constraints) {
-                          // Determinar qué widget de modo pintar
-                          if (currentMode == EngineMode.kana && activeLevel == null) {
-                            // Mostrar GRID de Campaña KANA
-                            return campaignState.when(
-                              loading: () => Center(child: CircularProgressIndicator(color: accent)),
-                              error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
-                              data: (levels) => _buildKanaGrid(levels, settings.progressiveSystem, accent),
-                            );
-                          }
-
-                          if (currentMode == EngineMode.kanji && !isPlayingKanji) {
-                            // Mostrar Landing de KANJI SRS
-                            return _buildKanjiLanding(kanjiState, accent, kanjiNotifier);
-                          }
-
-                          // MODO DE JUEGO ACTIVO
-                          if (currentEngineState != EngineState.playing) {
-                            // Mostrar IDLE OVERLAY
-                            return _buildIdleOverlay(currentMode, accent, mecaNotifier, kanjiNotifier);
-                          }
-
-                          if (showLevelSummary) {
-                            // Mostrar Resumen de Fin de Nivel KANA
-                            return _buildLevelSummary(accent);
-                          }
-
-                          // RENDERIZAR CARÁCTER FLOTANTE DESNUDO EN ESPACIO NEGATIVO
-                          return Stack(
-                            children: [
-                              Center(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Opacity(
-                                    opacity: settings.canvasOpacity,
-                                    child: _buildNakedCharacter(currentMode, mecaState, kanjiState, settings, accent),
-                                  ),
-                                ),
-                              ),
-
-                              // Controles o Fase en Kanji
-                              if (currentMode == EngineMode.kanji && kanjiState.activePool.isNotEmpty) ...[
-                                Positioned(
-                                  top: 16,
-                                  left: 0,
-                                  right: 0,
-                                  child: Center(
-                                    child: Text(
-                                      'FASE: ${kanjiNotifier.getPhaseFor(kanjiState.activePool.first.srsScore).name.toUpperCase()}',
-                                      style: TextStyle(
-                                        color: accent.withValues(alpha: 0.3),
-                                        fontFamily: 'Courier',
-                                        fontSize: 9,
-                                        letterSpacing: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ── BARRA DE ENTRADA CHATBOT (ABAJO DEL TODO) ──────────────────
-              if (currentEngineState == EngineState.playing && !showLevelSummary && !_isPhase4MultipleChoice(currentMode, kanjiState, kanjiNotifier))
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    border: Border(top: BorderSide(color: Colors.white10, width: 0.5)),
-                  ),
-                  child: TextField(
-                    controller: _inputController,
-                    focusNode: _inputFocusNode,
-                    onChanged: (val) => _handleInputChanged(val, currentMode, mecaState, mecaNotifier, kanjiState, kanjiNotifier),
-                    autofocus: true,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Courier',
-                      fontSize: 13,
-                      fontWeight: settings.useBoldText ? FontWeight.bold : FontWeight.normal,
-                      letterSpacing: 2,
-                    ),
-                    cursorColor: accent,
-                    cursorHeight: 14,
-                    decoration: InputDecoration(
-                      hintText: currentMode == EngineMode.kanji &&
-                              kanjiState.activePool.isNotEmpty &&
-                              kanjiNotifier.getPhaseFor(kanjiState.activePool.first.srsScore) == KanjiSrsPhase.inversion
-                          ? 'Dibuja o escribe el Kanji...'
-                          : 'Escribe en romaji...',
-                      hintStyle: const TextStyle(
-                        color: Colors.white24,
-                        fontFamily: 'Courier',
-                        fontSize: 11,
-                        letterSpacing: 1.5,
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                  ),
-                ),
-
-              if (currentEngineState == EngineState.playing && !showLevelSummary && _isPhase4MultipleChoice(currentMode, kanjiState, kanjiNotifier))
-                _buildMultipleChoiceGrid(kanjiState.activePool.first, accent, kanjiNotifier),
-            ],
-          ),
-        ),
-      ),
     );
-  }
 
-  // Comprueba si estamos en la fase 4 discriminatoria de Kanji
-  bool _isPhase4MultipleChoice(EngineMode mode, KanjiSrsState srsState, KanjiSrsNotifier notifier) {
-    if (mode != EngineMode.kanji || srsState.activePool.isEmpty) return false;
-    final kanji = srsState.activePool.first;
-    return notifier.getPhaseFor(kanji.srsScore) == KanjiSrsPhase.discriminatory;
-  }
+    // Dynamic Telemetry String
+    final streak = timelineState.streak;
+    final avgMs = timelineState.avgMs;
+    final hitRateAcc = (timelineState.hitRate * 100).toStringAsFixed(0);
+    final telemetryStr = '[Racha: $streak | ms: ${avgMs > 0 ? avgMs : "—"} | A: $hitRateAcc%]';
 
-  // ── RENDERIZAR CARÁCTER DESNUDO SIN RECUARES ──────────────────────────────
-  Widget _buildNakedCharacter(
-    EngineMode mode,
-    GameState mecaState,
-    KanjiSrsState kanjiState,
-    SettingsState settings,
-    Color accent,
-  ) {
-    if (mode == EngineMode.meca || activeLevel != null) {
-      if (mecaState.currentSequence.isEmpty) {
-        return const Text('SIN DATOS', style: TextStyle(color: Colors.white24, fontFamily: 'Courier', fontSize: 14));
-      }
-      final current = mecaState.currentSequence[mecaState.currentSequenceIndex];
-      return Text(
-        current.character,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 160,
-          fontWeight: settings.useBoldText ? FontWeight.w900 : FontWeight.w100,
-          fontFamily: 'Courier',
-        ),
-      );
-    } else {
-      // MODO KANJI SRS
-      if (kanjiState.activePool.isEmpty) {
-        return const Text('POOL VACÍO', style: TextStyle(color: Colors.white24, fontFamily: 'Courier', fontSize: 14));
-      }
-      final kanji = kanjiState.activePool.first;
-      final phase = ref.read(kanjiSrsProvider.notifier).getPhaseFor(kanji.srsScore);
+    // UI elements setup
 
-      if (phase == KanjiSrsPhase.initial || phase == KanjiSrsPhase.withdrawal) {
-        // Fase 1 y 2: Mostrar el Kanji directamente (o vectorial)
-        if (settings.enableStrokeAnimation && kanji.svgPaths.isNotEmpty) {
-          return SizedBox(
-            width: 180,
-            height: 180,
-            child: CustomPaint(
-              painter: KanjiVectorPainter(
-                svgPaths: kanji.svgPaths,
-                accentColor: accent,
-              ),
-            ),
-          );
-        }
-        return Text(
-          kanji.character,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 160,
-            fontWeight: settings.useBoldText ? FontWeight.w900 : FontWeight.w100,
-          ),
-        );
-      } else {
-        // Fase 3 y 4: Mostrar Concepto/Significado
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              kanji.meanings.first.toUpperCase(),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontFamily: 'Courier',
-                letterSpacing: 4,
-                fontWeight: settings.useBoldText ? FontWeight.bold : FontWeight.w300,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (phase == KanjiSrsPhase.initial) ...[
-              const SizedBox(height: 12),
-              Text(
-                kanji.meanings.join(', '),
-                style: const TextStyle(color: Colors.white38, fontFamily: 'Courier', fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        );
-      }
-    }
-  }
-
-  // ── RENDERIZAR MENÚ DE PAUSA / IDLE OVERLAY ────────────────────────────────
-  Widget _buildIdleOverlay(EngineMode mode, Color accent, GameNotifier mecaNotifier, KanjiSrsNotifier kanjiNotifier) {
-    final title = mode == EngineMode.kana ? 'KANA 1.0' : (mode == EngineMode.meca ? 'MECA 1.0' : 'KANJI 1.0');
-
-    return Stack(
+    Widget bodyColumn = Column(
       children: [
-        // Fondo semi-oscuro para opacidad del 20%
-        Container(
-          color: Colors.black.withValues(alpha: 0.8),
-        ),
-
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: accent,
-                  fontFamily: 'Courier',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildMenuAction(
-                label: '[ ENTRAR AL SISTEMA ]',
-                accent: accent,
-                onTap: () {
-                  if (mode == EngineMode.meca || activeLevel != null) {
-                    mecaNotifier.resume();
-                  } else if (mode == EngineMode.kanji) {
-                    setState(() {
-                      isPlayingKanji = true;
-                    });
-                    kanjiNotifier.resume();
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildMenuAction(
-                label: '[ AJUSTES CONTEXTUALES ]',
-                accent: accent,
-                onTap: () => _showContextSettings(context, mode),
-              ),
-              const SizedBox(height: 16),
-              _buildMenuAction(
-                label: '[ SALIR DEL MOTOR ]',
-                accent: accent,
-                onTap: () => SystemNavigator.pop(),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMenuAction({required String label, required Color accent, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: accent,
-            fontFamily: 'Courier',
-            fontSize: 13,
-            letterSpacing: 2,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── RENDERIZAR GRID KANA 20x5 ──────────────────────────────────────────────
-  Widget _buildKanaGrid(List<KanaLevelModel> levels, ProgressiveSystem system, Color accent) {
-    // Filtrar niveles por modo
-    final filtered = levels.where((l) {
-      if (system == ProgressiveSystem.hira) return l.levelId <= 50;
-      if (system == ProgressiveSystem.kata) return l.levelId > 50;
-      return true;
-    }).toList();
-
-    return Column(
-      children: [
-        // Secondary Header
+        // ── GLOBAL HEADER BAR (UI Elástica Superior) ──────────────────
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _ToggleBtn('HIRAGANA', system == ProgressiveSystem.hira, accent, () {
-                ref.read(settingsProvider.notifier).setProgressiveSystem(ProgressiveSystem.hira);
-              }),
-              _ToggleBtn('MIXTO', system == ProgressiveSystem.both, accent, () {
-                ref.read(settingsProvider.notifier).setProgressiveSystem(ProgressiveSystem.both);
-              }),
-              _ToggleBtn('KATAKANA', system == ProgressiveSystem.kata, accent, () {
-                ref.read(settingsProvider.notifier).setProgressiveSystem(ProgressiveSystem.kata);
-              }),
-            ],
-          ),
-        ),
+              // Hamburguesa Sidebar Trigger
+              Builder(
+                builder: (ctx) => GestureDetector(
+                  onTap: () => Scaffold.of(ctx).openDrawer(),
+                  child: const Icon(Icons.menu, color: Colors.white, size: 20),
+                ),
+              ),
+              const Spacer(),
 
-        // Grid 20x5
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 0.9,
-            ),
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              final level = filtered[index];
-              final isUnlocked = level.isUnlocked;
-
-              Widget content;
-              if (!isUnlocked) {
-                content = Container(
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    border: Border.all(color: Colors.white10),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.lock_outline, size: 14, color: Colors.white24),
-                );
-              } else {
-                final isHardcore = ref.read(settingsProvider).hardcoreMode;
-                final displayStars = isHardcore ? level.redStars : level.stars;
-                final starColor = isHardcore ? CyberTheme.errorRed : accent;
-
-                content = Container(
+              // Center Mode selector click overlay dropdown
+              GestureDetector(
+                onTap: () => _showModeSelectorOverlay(context, accent),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: 0.05),
                     border: Border.all(color: accent.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Text(
+                    '${activeSession.activeMode.name.toUpperCase()} ▼',
+                    style: TextStyle(
+                      color: accent,
+                      fontFamily: 'Courier',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const Spacer(),
+
+              // ContextConfigTrigger config bottom sheet
+              GestureDetector(
+                onTap: () => _showContextSettings(context, activeSession.activeMode, accent),
+                child: Icon(Icons.more_vert, color: accent, size: 18),
+              ),
+            ],
+          ),
+        ),
+
+        const Divider(color: Colors.white10, height: 1),
+
+        // ── UNIVERSAL CANVAS & SESSION TIMELINE ────────────────────────
+        Expanded(
+          child: Center(
+            child: SizedBox(
+              width: double.infinity,
+              child: LayoutBuilder(
+                builder: (ctx, constraints) {
+                  final localCanvasHeight = constraints.maxHeight;
+                  final activeGridHeight = _calculateActiveGridHeight(nodes, localCanvasHeight, settings.layoutMode);
+                  final localBottomPadding = activeGridHeight > 0.0
+                      ? (localCanvasHeight - activeGridHeight) / 2
+                      : 24.0;
+
+                  if (nodes.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'ESPERANDO CONEXIÓN DEL INGRESO...',
+                        style: TextStyle(color: accent.withValues(alpha: 0.3), fontSize: 11, fontFamily: 'Courier'),
+                      ),
+                    );
+                  }
+
+                  return Stack(
                     children: [
-                      Text(
-                        'L${level.levelId}',
-                        style: TextStyle(
-                          color: accent,
-                          fontFamily: 'Courier',
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      // Telemetry Overlay
+                      Positioned(
+                        top: 8,
+                        left: 16,
+                        right: 16,
+                        child: Text(
+                          telemetryStr,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: accent.withValues(alpha: 0.3),
+                            fontFamily: 'Courier',
+                            fontSize: 10,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(3, (starIdx) {
-                          return Icon(
-                            starIdx < displayStars ? Icons.star : Icons.star_border,
-                            color: starIdx < displayStars ? starColor : starColor.withValues(alpha: 0.2),
-                            size: 10,
-                          );
-                        }),
+                      // Feed scrolling list builder
+                      NotificationListener<UserScrollNotification>(
+                        onNotification: (notification) {
+                          // Detect user pulling up (reverse direction offset decrease)
+                          if (notification.metrics.pixels < notification.metrics.maxScrollExtent - 20) {
+                            ref.read(timelineProvider.notifier).pauseGame();
+                          }
+                          return true;
+                        },
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(top: 24, bottom: localBottomPadding),
+                          itemCount: nodes.length,
+                          itemBuilder: (ctx, i) {
+                            final node = nodes[i];
+                            // Render appropriate node based on its type
+                            if (node is MecaInputNode) {
+                              return MecaInputWidget(node: node);
+                            } else if (node is KanjiProductionNode) {
+                              return KanjiProductionWidget(productionNode: node);
+                            } else if (node is ConceptRecallNode) {
+                              return KanjiProductionWidget(recallNode: node);
+                            } else if (node is KanjiQuizNode) {
+                              return KanjiQuizWidget(node: node);
+                            } else if (node is LaneCollisionViewportNode) {
+                              return SizedBox(
+                                height: 320,
+                                child: ArcadeViewportWidget(node: node),
+                              );
+                            } else if (node is StrokeValidationNode) {
+                              return SizedBox(
+                                height: 280,
+                                child: StrokeValidationWidget(node: node),
+                              );
+                            } else if (node is ExerciseReportNode) {
+                              return ExerciseReportWidget(node: node);
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ),
-                    ],
-                  ),
-                );
-              }
 
-              return GestureDetector(
-                onTap: () {
-                  if (!isUnlocked) return;
-                  setState(() {
-                    activeLevel = level;
-                    levelQuestionsAnswered = 0;
-                    levelErrors = 0;
-                    levelSuccesses = 0;
-                    levelMaxResponseMs = 0;
-                    showLevelSummary = false;
-                  });
-                  ref.read(gameProvider.notifier).initializeCampaign(level);
-                  ref.read(gameProvider.notifier).resume();
+                      // Central pause overlay actions when paused
+                      if (timelineState.isPaused)
+                        Positioned.fill(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // Glow effect behind text
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: CyberTheme.errorRed.withValues(alpha: 0.2),
+                                            blurRadius: 40,
+                                            spreadRadius: 10,
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Text(
+                                        'SISTEMA PAUSADO',
+                                        style: TextStyle(
+                                          color: CyberTheme.errorRed,
+                                          fontFamily: 'Courier',
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 8,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 60),
+                                    SizedBox(
+                                      width: 240,
+                                      child: CyberButton(
+                                        label: 'REANUDAR',
+                                        onTap: () {
+                                          ref.read(timelineProvider.notifier).resumeGame();
+                                        },
+                                        accent: accent,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    SizedBox(
+                                      width: 240,
+                                      child: CyberButton(
+                                        label: 'AJUSTES',
+                                        onTap: () {
+                                          _showContextSettings(context, activeSession.activeMode, accent);
+                                        },
+                                        accent: accent,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    SizedBox(
+                                      width: 240,
+                                      child: CyberButton(
+                                        label: 'DESCONECTAR',
+                                        onTap: () {
+                                          SystemNavigator.pop();
+                                        },
+                                        accent: CyberTheme.errorRed,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // SnapToBottomButton
+                      if (_showSnapToBottom && !timelineState.isPaused)
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          child: GestureDetector(
+                            onTap: () {
+                              _scrollToBottom();
+                              ref.read(timelineProvider.notifier).resumeGame();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: accent,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: const Text(
+                                'SNAP TO LIVE V',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontFamily: 'Courier',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
                 },
-                child: content,
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── RENDERIZAR SUMMARY FIN DE NIVEL KANA ───────────────────────────────────
-  Widget _buildLevelSummary(Color accent) {
-    final hitRate = levelSuccesses / levelQuestionsAnswered;
-    final success = hitRate >= 0.8;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            success ? Icons.verified_user_outlined : Icons.report_problem_outlined,
-            color: success ? accent : CyberTheme.errorRed,
-            size: 48,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            success ? 'NIVEL COMPLETADO' : 'NIVEL FALLIDO',
-            style: TextStyle(
-              color: success ? accent : CyberTheme.errorRed,
-              fontFamily: 'Courier',
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'ACIERTO: ${(hitRate * 100).toStringAsFixed(0)}% ($levelSuccesses/$levelQuestionsAnswered)\n'
-            'VELOCIDAD MÁX: ${levelMaxResponseMs}ms',
-            style: const TextStyle(color: Colors.white70, fontFamily: 'Courier', fontSize: 11, height: 1.5),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          CyberButton(
-            label: 'VOLVER AL MAPA',
-            accent: accent,
-            onTap: () {
-              setState(() {
-                activeLevel = null;
-                showLevelSummary = false;
-              });
-              ref.read(gameProvider.notifier).welcome();
-            },
-          ),
-        ],
+        ),
+
+        // ── DYNAMIC TERMINAL BAR (MUTANTE) ───────────────────────────
+        if (!timelineState.isPaused) const DynamicTerminalBar(),
+      ],
+    );
+
+    // Apply violent screen shake during neon error
+    if (timelineState.isNeonErrorActive) {
+      bodyColumn = bodyColumn.animate()
+          .shake(duration: 150.ms, hz: 15, offset: const Offset(10.0, 10.0));
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (!timelineState.isPaused) {
+          ref.read(timelineProvider.notifier).pauseGame();
+        } else {
+          ref.read(timelineProvider.notifier).resumeGame();
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.black, // Pure OLED black
+        drawer: GeneralDrawer(accent: accent),
+        body: SafeArea(
+          child: bodyColumn,
+        ),
       ),
     );
   }
 
-  // ── RENDERIZAR LANDING KANJI SRS ───────────────────────────────────────────
-  Widget _buildKanjiLanding(KanjiSrsState srsState, Color accent, KanjiSrsNotifier notifier) {
-    return Center(
-      child: srsState.isLoading
-          ? CircularProgressIndicator(color: accent)
-          : Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.psychology_outlined, size: 40, color: accent.withValues(alpha: 0.5)),
-                const SizedBox(height: 16),
-                Text(
-                  'MOTOR RELACIONAL KANJI',
-                  style: TextStyle(
-                    color: accent,
-                    fontFamily: 'Courier',
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Ventana de Kanjis basada en historial de clics.\n'
-                  'Progreso estocástico y penalización cognitiva.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
-                    fontFamily: 'Courier',
-                    fontSize: 10,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  margin: const EdgeInsets.symmetric(horizontal: 48),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: accent.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildLandingStat('KANJIS ACTIVOS', srsState.activePool.length.toString(), accent),
-                      _buildLandingStat('DOMINIO MEDIO', srsState.averagePoolScore.toStringAsFixed(1), accent),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                CyberButton(
-                  label: 'INICIAR SISTEMA SRS',
-                  icon: Icons.flash_on,
-                  accent: accent,
-                  onTap: () {
-                    setState(() {
-                      isPlayingKanji = true;
-                    });
-                    notifier.resume();
-                  },
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildLandingStat(String label, String value, Color accent) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white24, fontFamily: 'Courier', fontSize: 8, letterSpacing: 1),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-
-  // ── PANEL DE SELECCIÓN MÚLTIPLE DE RADICALES (KANJI FASE 4) ────────────────
-  Widget _buildMultipleChoiceGrid(KanjiModel kanji, Color accent, KanjiSrsNotifier notifier) {
-    final options = notifier.generateDiscriminatoryOptions(kanji);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.black,
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.5,
-        ),
-        itemCount: options.length,
-        itemBuilder: (context, i) {
-          final opt = options[i];
-          return InkWell(
-            onTap: () {
-              if (opt == kanji.character) {
-                notifier.recordSuccess(kanji);
-              } else {
-                notifier.recordError(kanji);
-              }
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: accent.withValues(alpha: 0.3)),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                opt,
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w300),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 }
 
-class _ModeTab extends StatelessWidget {
-  const _ModeTab(this.label, this.isActive, this.accent, this.onTap);
-  final String label;
-  final bool isActive;
-  final Color accent;
-  final VoidCallback onTap;
+class OledToggleSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color activeColor;
+
+  const OledToggleSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.activeColor = const Color(0xFF00FF66),
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? accent : Colors.white24,
-            fontFamily: 'Courier',
-            fontSize: 11,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w300,
-            letterSpacing: 1,
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 40,
+        height: 20,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: value ? activeColor.withValues(alpha: 0.2) : const Color(0xFF222222),
+          border: Border.all(
+            color: value ? activeColor : const Color(0xFF333333),
+            width: 1.5,
           ),
+        ),
+        child: Stack(
+          children: [
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeInOut,
+              left: value ? 22 : 2,
+              top: 1.5,
+              child: Container(
+                width: 13,
+                height: 13,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? activeColor : const Color(0xFF666666),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ToggleBtn extends StatelessWidget {
-  const _ToggleBtn(this.label, this.isActive, this.accent, this.onTap);
-  final String label;
-  final bool isActive;
-  final Color accent;
-  final VoidCallback onTap;
+class CyberSegmentedControl<T> extends StatelessWidget {
+  final T groupValue;
+  final Map<T, String> children;
+  final ValueChanged<T> onValueChanged;
+  final Color accentColor;
+
+  const CyberSegmentedControl({
+    super.key,
+    required this.groupValue,
+    required this.children,
+    required this.onValueChanged,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive ? accent.withValues(alpha: 0.1) : Colors.transparent,
-          border: Border.all(color: isActive ? accent : Colors.white10),
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? accent : Colors.white30,
-            fontFamily: 'Courier',
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            letterSpacing: 1.5,
-          ),
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 210),
+      height: 28,
+      decoration: BoxDecoration(
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: children.entries.map((entry) {
+            final isSelected = entry.key == groupValue;
+            final itemWidth = 208.0 / children.length;
+            return SizedBox(
+              width: itemWidth,
+              height: double.infinity,
+              child: GestureDetector(
+                onTap: () => onValueChanged(entry.key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  alignment: Alignment.center,
+                  color: isSelected ? accentColor.withValues(alpha: 0.15) : Colors.transparent,
+                  child: Text(
+                    entry.value,
+                    style: TextStyle(
+                      color: isSelected ? accentColor : Colors.white60,
+                      fontFamily: 'Courier',
+                      fontSize: 8.5,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );

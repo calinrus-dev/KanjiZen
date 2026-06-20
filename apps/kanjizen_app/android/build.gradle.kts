@@ -23,6 +23,20 @@ subprojects {
                     setNamespaceMethod?.invoke(androidExt, project.group.toString())
                 }
             }
+            if (project.name != "app") {
+                val compileSdkVersionMethod = androidExt.javaClass.methods.find { 
+                    it.name == "compileSdkVersion" && it.parameterCount == 1 
+                }
+                compileSdkVersionMethod?.let { method ->
+                    try {
+                        method.invoke(androidExt, 34)
+                    } catch (e: Exception) {
+                        try {
+                            method.invoke(androidExt, "android-34")
+                        } catch (e2: Exception) {}
+                    }
+                }
+            }
         }
     }
 }

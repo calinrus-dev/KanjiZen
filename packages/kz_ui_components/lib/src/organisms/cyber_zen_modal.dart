@@ -75,7 +75,9 @@ class _CyberZenModalState extends State<CyberZenModal>
 
   @override
   Widget build(BuildContext context) {
-    const accent = CyberTheme.defaultAccent;
+    final accent =
+        Theme.of(context).extension<CyberThemeExtension>()?.accentColor ??
+        CyberTheme.defaultAccent;
     final tier = TierCalculator.calculate(
       hitRate: widget.kana.currentHitRate,
       avgMs: widget.kana.averageMs,

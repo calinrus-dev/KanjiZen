@@ -12,18 +12,18 @@ class KanjiEntity {
   late String character;
 
   @Index()
-  late String radical;
+  String radical = '';
 
   @Index()
-  late int jlpt; // 5 a 1
+  int jlpt = 0; // 5 a 1
 
   @Index()
-  late int joyo; // Grado 1 a 6, o 8 para secundaria superior
+  int joyo = 0; // Grado 1 a 6, o 8 para secundaria superior
 
   @Index()
-  late bool isJinmeiyo; // Para nombres
+  bool isJinmeiyo = false; // Para nombres
 
-  late List<String> kanjidicTranslations; // Traducciones de diccionario oficiales
+  List<String> kanjidicTranslations = []; // Traducciones de diccionario oficiales
 
   /// Lista de Onyomis (Lecturas chinas) en Katakana.
   List<String> onyomi = [];

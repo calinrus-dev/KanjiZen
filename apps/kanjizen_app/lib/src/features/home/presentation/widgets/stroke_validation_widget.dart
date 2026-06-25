@@ -27,61 +27,25 @@ class _StrokeValidationWidgetState
     final k = widget.node.kanji;
 
     if (widget.node.isFrozen) {
-      // Frozen static view
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.02),
-          border: Border.all(color: Colors.white10),
-          borderRadius: BorderRadius.circular(4),
+      return CyberHistoryCard(
+        title: 'ENGINE: WRITE 1.0',
+        statusLabel: 'COMPLETADO',
+        statusColor: accent,
+        accentColor: accent,
+        mainContent: Text(
+          'KANJI: ${k.character} [${k.meanings.first.toUpperCase()}]',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontFamily: 'Courier',
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'ENGINE: WRITE 1.0',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-                Text(
-                  'COMPLETADO',
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 10,
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'KANJI CALIGRAFIADO: ${k.character} [${k.meanings.first.toUpperCase()}]',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'TRAZOS REALIZADOS CORRECTAMENTE: ${k.svgPaths.length}',
-              style: TextStyle(
-                color: accent.withValues(alpha: 0.7),
-                fontSize: 11,
-                fontFamily: 'Courier',
-              ),
-            ),
-          ],
-        ),
+        stats: {
+          'trazos': '${k.svgPaths.length}',
+          'srs': k.srsScore.toStringAsFixed(1),
+          'significado': k.meanings.first,
+        },
       );
     }
 

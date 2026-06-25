@@ -587,7 +587,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
     // Congelar nodos previos
     final updatedNodes = List<FeedNode>.from(activeSession.nodes);
-    if (!forceNew && updatedNodes.isNotEmpty) {
+    if (updatedNodes.isNotEmpty) {
       final lastNode = updatedNodes.last;
       updatedNodes[updatedNodes.length - 1] = lastNode.freeze();
     }

@@ -27,63 +27,27 @@ class KanjiProductionWidget extends ConsumerWidget {
     final useBold = settings.useBoldText;
 
     if (isFrozen) {
-      // Frozen static view
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.02),
-          border: Border.all(color: Colors.white10),
-          borderRadius: BorderRadius.circular(4),
+      return CyberHistoryCard(
+        title: isRecall
+            ? 'ENGINE: KANJI 1.0 (RECALL)'
+            : 'ENGINE: KANJI 1.0 (PRODUCTION)',
+        statusLabel: 'COMPLETADO',
+        statusColor: accent,
+        accentColor: accent,
+        mainContent: Text(
+          'KANJI: ${kanji.character} [${kanji.meanings.first.toUpperCase()}]',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontFamily: 'Courier',
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isRecall
-                      ? 'ENGINE: KANJI 1.0 (RECALL)'
-                      : 'ENGINE: KANJI 1.0 (PRODUCTION)',
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-                Text(
-                  'COMPLETADO',
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 10,
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'KANJI: ${kanji.character} [${kanji.meanings.first.toUpperCase()}]',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'SRS SCORE: ${kanji.srsScore.toStringAsFixed(1)} | ON: ${kanji.onyomi.join(", ")} | KUN: ${kanji.kunyomi.join(", ")}',
-              style: TextStyle(
-                color: accent.withValues(alpha: 0.7),
-                fontSize: 11,
-                fontFamily: 'Courier',
-              ),
-            ),
-          ],
-        ),
+        stats: {
+          'srs score': kanji.srsScore.toStringAsFixed(1),
+          'onyomi': kanji.onyomi.take(2).join(', '),
+          'kunyomi': kanji.kunyomi.take(2).join(', '),
+        },
       );
     }
 

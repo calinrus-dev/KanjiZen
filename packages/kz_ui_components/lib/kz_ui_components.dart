@@ -9,6 +9,7 @@ library;
 // ─── Atoms ───────────────────────────────────────────────────────────────────
 export 'src/atoms/tier_badge.dart';
 export 'src/atoms/cyber_button.dart';
+export 'src/atoms/cyber_history_card.dart';
 export 'src/atoms/kanji_vg_painter.dart';
 
 // ─── Molecules ────────────────────────────────────────────────────────────────

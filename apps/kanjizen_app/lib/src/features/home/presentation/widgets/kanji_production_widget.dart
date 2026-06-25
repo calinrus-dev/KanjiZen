@@ -54,6 +54,15 @@ class KanjiProductionWidget extends ConsumerWidget {
     // Active interactive view
     final opacity = timelineState.isPaused ? 0.2 : 1.0;
 
+    final mediaQuery = MediaQuery.of(context);
+    final totalHeight = mediaQuery.size.height;
+    final keyboardHeight = mediaQuery.viewInsets.bottom;
+    final availableHeight = totalHeight - keyboardHeight;
+    final isCompact = availableHeight < 480;
+
+    final boxSize = isCompact ? 100.0 : 180.0;
+    final fontSize = isCompact ? 80.0 : 140.0;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -67,7 +76,7 @@ class KanjiProductionWidget extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: opacity),
-                fontSize: 32,
+                fontSize: isCompact ? 22 : 32,
                 fontFamily: 'Courier',
                 letterSpacing: 4,
                 fontWeight: useBold ? FontWeight.bold : FontWeight.w300,
@@ -87,8 +96,8 @@ class KanjiProductionWidget extends ConsumerWidget {
           ] else ...[
             // Production: displays Kanji naked (vector or text) + concept
             SizedBox(
-              width: 180,
-              height: 180,
+              width: boxSize,
+              height: boxSize,
               child: Opacity(
                 opacity: opacity,
                 child:
@@ -104,7 +113,7 @@ class KanjiProductionWidget extends ConsumerWidget {
                           kanji.character,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 140,
+                            fontSize: fontSize,
                             fontFamily: 'Courier',
                             fontWeight: useBold
                                 ? FontWeight.w900

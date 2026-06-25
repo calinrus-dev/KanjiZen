@@ -643,99 +643,113 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                     children: [
                       Column(
                         children: [
-                          // Telemetry Overlay
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              telemetryStr,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: accent.withValues(alpha: 0.3),
-                                fontFamily: 'Courier',
-                                fontSize: 10,
+                          if (localCanvasHeight >= 450 ||
+                              activeNode == null) ...[
+                            // Telemetry Overlay
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                telemetryStr,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: accent.withValues(alpha: 0.3),
+                                  fontFamily: 'Courier',
+                                  fontSize: 10,
+                                ),
                               ),
                             ),
-                          ),
 
-                          // Feed scrolling list builder (History Feed)
-                          Expanded(
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.only(
-                                top: 12,
-                                bottom: 24,
+                            // Feed scrolling list builder (History Feed)
+                            Expanded(
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.only(
+                                  top: 12,
+                                  bottom: 24,
+                                ),
+                                itemCount: frozenNodes.length,
+                                itemBuilder: (ctx, i) {
+                                  final node = frozenNodes[i];
+                                  // Render appropriate node based on its type
+                                  if (node is MecaInputNode) {
+                                    return MecaInputWidget(node: node);
+                                  } else if (node is KanjiProductionNode) {
+                                    return KanjiProductionWidget(
+                                      productionNode: node,
+                                    );
+                                  } else if (node is ConceptRecallNode) {
+                                    return KanjiProductionWidget(
+                                      recallNode: node,
+                                    );
+                                  } else if (node is KanjiQuizNode) {
+                                    return KanjiQuizWidget(node: node);
+                                  } else if (node
+                                      is LaneCollisionViewportNode) {
+                                    return ArcadeViewportWidget(node: node);
+                                  } else if (node is StrokeValidationNode) {
+                                    return StrokeValidationWidget(node: node);
+                                  } else if (node is ExerciseReportNode) {
+                                    return ExerciseReportWidget(node: node);
+                                  }
+                                  return const SizedBox.shrink();
+                                },
                               ),
-                              itemCount: frozenNodes.length,
-                              itemBuilder: (ctx, i) {
-                                final node = frozenNodes[i];
-                                // Render appropriate node based on its type
-                                if (node is MecaInputNode) {
-                                  return MecaInputWidget(node: node);
-                                } else if (node is KanjiProductionNode) {
-                                  return KanjiProductionWidget(
-                                    productionNode: node,
-                                  );
-                                } else if (node is ConceptRecallNode) {
-                                  return KanjiProductionWidget(
-                                    recallNode: node,
-                                  );
-                                } else if (node is KanjiQuizNode) {
-                                  return KanjiQuizWidget(node: node);
-                                } else if (node is LaneCollisionViewportNode) {
-                                  return ArcadeViewportWidget(node: node);
-                                } else if (node is StrokeValidationNode) {
-                                  return StrokeValidationWidget(node: node);
-                                } else if (node is ExerciseReportNode) {
-                                  return ExerciseReportWidget(node: node);
-                                }
-                                return const SizedBox.shrink();
-                              },
                             ),
-                          ),
+
+                            // Active Workspace Divider
+                            if (activeNode != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 1,
+                                      color: accent.withValues(alpha: 0.3),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'ACTIVE WORKSPACE',
+                                      style: TextStyle(
+                                        color: accent.withValues(alpha: 0.4),
+                                        fontFamily: 'Courier',
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Divider(
+                                        color: accent.withValues(alpha: 0.15),
+                                        height: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ] else ...[
+                            const SizedBox(height: 12),
+                          ],
 
                           // Active Workspace Area
-                          if (activeNode != null) ...[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 1,
-                                    color: accent.withValues(alpha: 0.3),
+                          if (activeNode != null)
+                            Expanded(
+                              flex: localCanvasHeight < 450 ? 1 : 0,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildActiveNodeWidget(
+                                    activeNode,
+                                    localCanvasHeight,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'ACTIVE WORKSPACE',
-                                    style: TextStyle(
-                                      color: accent.withValues(alpha: 0.4),
-                                      fontFamily: 'Courier',
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Divider(
-                                      color: accent.withValues(alpha: 0.15),
-                                      height: 1,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildActiveNodeWidget(
-                                activeNode,
-                                localCanvasHeight,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
 

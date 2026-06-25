@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
@@ -10,10 +11,12 @@ class StrokeValidationWidget extends ConsumerStatefulWidget {
   final StrokeValidationNode node;
 
   @override
-  ConsumerState<StrokeValidationWidget> createState() => _StrokeValidationWidgetState();
+  ConsumerState<StrokeValidationWidget> createState() =>
+      _StrokeValidationWidgetState();
 }
 
-class _StrokeValidationWidgetState extends ConsumerState<StrokeValidationWidget> {
+class _StrokeValidationWidgetState
+    extends ConsumerState<StrokeValidationWidget> {
   final List<Offset> _currentStrokePoints = [];
 
   @override
@@ -41,23 +44,41 @@ class _StrokeValidationWidgetState extends ConsumerState<StrokeValidationWidget>
               children: [
                 const Text(
                   'ENGINE: WRITE 1.0',
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'Courier'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                  ),
                 ),
                 Text(
                   'COMPLETADO',
-                  style: TextStyle(color: accent, fontSize: 10, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'KANJI CALIGRAFIADO: ${k.character} [${k.meanings.first.toUpperCase()}]',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontFamily: 'Courier',
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'TRAZOS REALIZADOS CORRECTAMENTE: ${k.svgPaths.length}',
-              style: TextStyle(color: accent.withValues(alpha: 0.7), fontSize: 11, fontFamily: 'Courier'),
+              style: TextStyle(
+                color: accent.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontFamily: 'Courier',
+              ),
             ),
           ],
         ),
@@ -66,107 +87,131 @@ class _StrokeValidationWidgetState extends ConsumerState<StrokeValidationWidget>
 
     final opacity = timelineState.isPaused ? 0.2 : 1.0;
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            k.meanings.first.toUpperCase(),
-            style: TextStyle(
-              color: Colors.white38.withValues(alpha: opacity),
-              fontSize: 14,
-              fontFamily: 'Courier',
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'DIBUJA EL TRAZO ${widget.node.currentStrokeIndex + 1} DE ${k.svgPaths.length}',
-            style: TextStyle(
-              color: accent.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontFamily: 'Courier',
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 20),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        // Restar espacio aproximado ocupado por el texto y los espacios para dimensionar el canvas
+        final canvasSize = (availableHeight - 80).clamp(140.0, 220.0);
 
-          // Drawing Area
-          SizedBox(
-            width: 200,
-            height: 200,
-            child: GestureDetector(
-              onPanStart: (details) {
-                if (timelineState.isPaused) return;
-                setState(() {
-                  _currentStrokePoints.clear();
-                  _currentStrokePoints.add(details.localPosition);
-                });
-              },
-              onPanUpdate: (details) {
-                if (timelineState.isPaused) return;
-                setState(() {
-                  _currentStrokePoints.add(details.localPosition);
-                });
-              },
-              onPanEnd: (details) {
-                if (timelineState.isPaused) return;
-                if (_currentStrokePoints.length >= 2) {
-                  ref.read(timelineProvider.notifier).onStrokeCompleted(List.from(_currentStrokePoints));
-                }
-                setState(() {
-                  _currentStrokePoints.clear();
-                });
-              },
-              child: Stack(
-                children: [
-                  // Dimmed Template Guide (15% opacity)
-                  if (settings.writeGuideTemplate)
-                    Positioned.fill(
-                      child: Opacity(
-                        opacity: 0.15 * opacity,
-                        child: CustomPaint(
-                          painter: KanjiVectorPainter(
-                            svgPaths: k.svgPaths,
-                            accentColor: accent,
-                            progress: 1.0,
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                k.meanings.first.toUpperCase(),
+                style: TextStyle(
+                  color: Colors.white38.withValues(alpha: opacity),
+                  fontSize: 14,
+                  fontFamily: 'Courier',
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'DIBUJA EL TRAZO ${widget.node.currentStrokeIndex + 1} DE ${k.svgPaths.length}',
+                style: TextStyle(
+                  color: accent.withValues(alpha: 0.5),
+                  fontSize: 10,
+                  fontFamily: 'Courier',
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Drawing Area (Reactivo y sin conflictos de gestos)
+              SizedBox(
+                width: canvasSize,
+                height: canvasSize,
+                child: RawGestureDetector(
+                  gestures: <Type, GestureRecognizerFactory>{
+                    ImmediatePanGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          ImmediatePanGestureRecognizer
+                        >(() => ImmediatePanGestureRecognizer(), (
+                          ImmediatePanGestureRecognizer instance,
+                        ) {
+                          instance
+                            ..onStart = (details) {
+                              if (timelineState.isPaused) return;
+                              setState(() {
+                                _currentStrokePoints.clear();
+                                _currentStrokePoints.add(details.localPosition);
+                              });
+                            }
+                            ..onUpdate = (details) {
+                              if (timelineState.isPaused) return;
+                              setState(() {
+                                _currentStrokePoints.add(details.localPosition);
+                              });
+                            }
+                            ..onEnd = (details) {
+                              if (timelineState.isPaused) return;
+                              if (_currentStrokePoints.length >= 2) {
+                                ref
+                                    .read(timelineProvider.notifier)
+                                    .onStrokeCompleted(
+                                      List.from(_currentStrokePoints),
+                                    );
+                              }
+                              setState(() {
+                                _currentStrokePoints.clear();
+                              });
+                            };
+                        }),
+                  },
+                  child: Stack(
+                    children: [
+                      // Dimmed Template Guide (15% opacity)
+                      if (settings.writeGuideTemplate)
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.15 * opacity,
+                            child: CustomPaint(
+                              painter: KanjiVectorPainter(
+                                svgPaths: k.svgPaths,
+                                accentColor: accent,
+                                progress: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Snapped strokes so far (neon green/accent)
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: opacity,
+                          child: CustomPaint(
+                            painter: KanjiVectorPainter(
+                              svgPaths: k.svgPaths,
+                              accentColor: accent,
+                              progress:
+                                  widget.node.currentStrokeIndex /
+                                  k.svgPaths.length,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                  // Snapped strokes so far (neon green/accent)
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: opacity,
-                      child: CustomPaint(
-                        painter: KanjiVectorPainter(
-                          svgPaths: k.svgPaths,
-                          accentColor: accent,
-                          progress: widget.node.currentStrokeIndex / k.svgPaths.length,
+                      // Active user drawing stroke lines
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: opacity,
+                          child: CustomPaint(
+                            painter: _UserStrokePainter(
+                              points: _currentStrokePoints,
+                              accentColor: accent,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-
-                  // Active user drawing stroke lines
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: opacity,
-                      child: CustomPaint(
-                        painter: _UserStrokePainter(
-                          points: _currentStrokePoints,
-                          accentColor: accent,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -215,4 +260,14 @@ class _UserStrokePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+/// Reconocedor de gestos personalizado que gana de inmediato en el Gesture Arena
+/// para prevenir que contenedores de scroll superiores (ej: ListView) intercepten los toques de dibujo.
+class ImmediatePanGestureRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
+  }
 }

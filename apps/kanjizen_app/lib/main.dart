@@ -32,21 +32,31 @@ class KanjiZenApp extends ConsumerWidget {
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 
   double _getFontMultiplier(AppFontSize size) {
     switch (size) {
-      case AppFontSize.auto: return 1.0;
-      case AppFontSize.s: return 0.8;
-      case AppFontSize.m: return 1.0;
-      case AppFontSize.l: return 1.25;
+      case AppFontSize.auto:
+        return 1.0;
+      case AppFontSize.s:
+        return 0.8;
+      case AppFontSize.m:
+        return 1.0;
+      case AppFontSize.l:
+        return 1.25;
     }
   }
 
@@ -55,7 +65,7 @@ class KanjiZenApp extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final accent = _getAccentColor(settings.accentColor);
     final fontMulti = _getFontMultiplier(settings.fontSize);
-    
+
     // El grosor del trazo lo vinculamos a si usa negrita
     final strokeMulti = settings.useBoldText ? 1.5 : 1.0;
 

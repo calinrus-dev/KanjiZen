@@ -45,7 +45,9 @@ class _CyberButtonState extends State<CyberButton> {
         duration: const Duration(milliseconds: 80),
         padding: padding,
         decoration: BoxDecoration(
-          color: _pressed ? _accent.withValues(alpha: 0.12) : Colors.transparent,
+          color: _pressed
+              ? _accent.withValues(alpha: 0.12)
+              : Colors.transparent,
           border: Border.all(
             color: _accent.withValues(alpha: _pressed ? 1.0 : 0.5),
             width: 1,

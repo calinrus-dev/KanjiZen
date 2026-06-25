@@ -52,13 +52,29 @@ class GameHeader extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                _RawMetric(label: 'Racha', value: '$streak', color: accentColor),
+                _RawMetric(
+                  label: 'Racha',
+                  value: '$streak',
+                  color: accentColor,
+                ),
                 const SizedBox(width: 12),
-                _RawMetric(label: 'ms', value: avgMs > 0 ? '$avgMs' : '---', color: accentColor),
+                _RawMetric(
+                  label: 'ms',
+                  value: avgMs > 0 ? '$avgMs' : '---',
+                  color: accentColor,
+                ),
                 const SizedBox(width: 12),
-                _RawMetric(label: 'A', value: '${(hitRate * 100).toStringAsFixed(0)}%', color: accentColor),
+                _RawMetric(
+                  label: 'A',
+                  value: '${(hitRate * 100).toStringAsFixed(0)}%',
+                  color: accentColor,
+                ),
                 const SizedBox(width: 12),
-                _RawMetric(label: 'E', value: '$errors', color: CyberTheme.errorRed),
+                _RawMetric(
+                  label: 'E',
+                  value: '$errors',
+                  color: CyberTheme.errorRed,
+                ),
               ],
             ),
           ),
@@ -66,7 +82,11 @@ class GameHeader extends StatelessWidget {
           // Inventario, Pausa y Ajustes
           if (onInventoryTap != null)
             IconButton(
-              icon: Icon(Icons.inventory_2_outlined, color: accentColor, size: 24),
+              icon: Icon(
+                Icons.inventory_2_outlined,
+                color: accentColor,
+                size: 24,
+              ),
               onPressed: onInventoryTap,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -94,7 +114,11 @@ class GameHeader extends StatelessWidget {
 }
 
 class _RawMetric extends StatelessWidget {
-  const _RawMetric({required this.label, required this.value, required this.color});
+  const _RawMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
   final String label;
   final String value;
   final Color color;
@@ -103,9 +127,24 @@ class _RawMetric extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text('[$label:', style: TextStyle(color: color.withValues(alpha: 0.5), fontFamily: 'Courier', fontSize: 12)),
+        Text(
+          '[$label:',
+          style: TextStyle(
+            color: color.withValues(alpha: 0.5),
+            fontFamily: 'Courier',
+            fontSize: 12,
+          ),
+        ),
         const SizedBox(width: 4),
-        Text('$value]', style: TextStyle(color: color, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          '$value]',
+          style: TextStyle(
+            color: color,
+            fontFamily: 'Courier',
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }

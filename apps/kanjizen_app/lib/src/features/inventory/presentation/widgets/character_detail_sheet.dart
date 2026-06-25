@@ -102,9 +102,7 @@ class _CharacterDetailSheetState extends State<CharacterDetailSheet>
 
     final displayRadical = radical.isNotEmpty
         ? radical
-        : (model is KanjiModel
-              ? (model).radicals.firstOrNull ?? ''
-              : '');
+        : (model is KanjiModel ? (model).radicals.firstOrNull ?? '' : '');
     final tierColor = switch (tier) {
       KanaTier.e => CyberTheme.errorRed,
       KanaTier.d => Colors.orange,

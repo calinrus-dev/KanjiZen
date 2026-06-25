@@ -15,8 +15,11 @@ class CampaignRepository {
   /// Actualiza las estrellas de un nivel tras una partida (solo si son mejores).
   Future<void> updateLevelStars(int levelId, int stars, int redStars) async {
     final isar = await _db;
-    final level = await isar.kanaLevelEntitys.where().levelIdEqualTo(levelId).findFirst();
-    
+    final level = await isar.kanaLevelEntitys
+        .where()
+        .levelIdEqualTo(levelId)
+        .findFirst();
+
     if (level != null) {
       bool changed = false;
       if (stars > level.stars) {
@@ -31,14 +34,14 @@ class CampaignRepository {
       if (changed) {
         await isar.writeTxn(() async {
           await isar.kanaLevelEntitys.put(level);
-          
+
           // Desbloquear el siguiente nivel si se consiguió al menos 1 estrella.
           if (level.stars >= 1) {
             final nextLevel = await isar.kanaLevelEntitys
                 .where()
                 .levelIdEqualTo(levelId + 1)
                 .findFirst();
-                
+
             if (nextLevel != null && !nextLevel.isUnlocked) {
               nextLevel.isUnlocked = true;
               await isar.kanaLevelEntitys.put(nextLevel);

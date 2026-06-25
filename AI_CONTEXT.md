@@ -1,69 +1,121 @@
 # 🤖 KANJIZEN AI CONTEXT
-> Documento de Referencia Inmutable para Agentes LLM y Arquitectos de Software.
+> Documento de referencia para agentes LLM y arquitectos de software.
 
-Este documento establece las directrices visuales, arquitectónicas y de comportamiento **inmutables** para el monorepo Kanjizen. **TODO código generado debe ceñirse ESTRICTAMENTE a estas especificaciones.**
+Este archivo resume el estado actual del monorepo KanjiZen y las reglas que deben respetarse al generar o modificar código.
 
-## 1. SISTEMA DE DISEÑO CYBER-ZEN INDUSTRIAL
-La interfaz maneja un contraste radical, plano y de alta visibilidad. No se permiten degradados ni suavizados que incrementen la latencia de repintado.
-*   `bgObsidian` (`0xFF000000`): Fondo absoluto OLED. Negro puro.
-*   `textNeutral` (`0xFFFFFFFF`): Texto principal de alto contraste.
-*   `errorRed` (`0xFFE53935`): Feedback inmediato para fallos críticos de entrada.
-*   `defaultAccent` (`0xFF00E676`): Acento primario para éxito. Controlado dinámicamente vía Riverpod.
+## 1. IDENTIDAD DEL PROYECTO
+- Repositorio: [github.com/calinrus-dev/KanjiZen](https://github.com/calinrus-dev/KanjiZen)
+- Rama principal: `main`
+- Estructura: monorepo Flutter/Dart gestionado con Melos
+- Objetivo: mecanización del estudio de kana y kanji con feedback inmediato, SRS local y UI de latencia baja
 
-## 2. ARQUITECTURA DEL MONOREPO (MELOS)
-El proyecto es un monorepo gestionado por Melos con división draconiana (DDD):
-1.  `kz_core`: Temas, constantes, interfaces abstractas (`ICharacterRepository`). Cero dependencias externas complejas.
-2.  `kz_data`: Modelos `@collection` de Isar, servicios de inicialización por Isolates, y repositorios locales.
-3.  `kz_domain`: Lógica de negocio pura, Freezed models inmutables, `InputValidator`, y `SrsEngine` (Riverpod).
-4.  `kz_ui_components`: Sistema Atómico (Atoms, Molecules, Organisms). Uso estricto de `flutter_animate` (prohibido `AnimationController` manual para micro-animaciones UI). Painters de alto rendimiento vectorial.
-5.  `kanjizen_app`: Aplicación orquestadora. Inyección de Riverpod, GoRouter, y pantallas principales.
+## 2. SISTEMA DE DISEÑO CYBER-ZEN INDUSTRIAL
+La interfaz usa contraste radical, superficies planas y feedback de alta visibilidad. No se permiten degradados suaves ni adornos que añadan coste innecesario de repintado.
 
-## 3. REGLAS ESTRUCTURALES Y UI
-1.  **RayitaInput (Molecule)**: TextField sin bordes. Renderiza solo `Border(bottom)`. Si falla (InputState.error), aplica un `shakeX` inmediato con `flutter_animate`. El `shakeX` usa `target: 1/0` — no `AnimationController` manual.
-2.  **KanjiVectorPainter** (`kz_ui_components/src/painters/`): Painter de producción. Procesa SVG crudos de KanjiVG y los dibuja por comandos Dart vía `path_drawing`. Soporta modo estático (`progress=1.0`) y animado trazo a trazo. Incluye efecto glow con `MaskFilter`. **Siempre envolver en `canvas.save()`/`canvas.restore()`.**
-3.  **KanjiVgPainter** (`kz_ui_components/src/atoms/`): Painter alternativo que acepta `Animation<double>`. Usar cuando se requiere integración directa con `AnimationController`. También requiere `canvas.save()`/`canvas.restore()`.
-4.  **Layout Reactivo al Teclado**: Todo layout principal (`HomeScreen`) debe envolverse en un `LayoutBuilder` escuchando `viewInsets.bottom` para levantar la caja de texto estáticamente **sobre** el teclado nativo, sin repintar el Canvas central.
-5.  **Generación de Código**: Todo cambio en `kz_data` o `kz_domain` requiere correr `dart run build_runner build -d`. Freezed v3+ requiere usar `abstract class Modelo with _$Modelo`.
-6.  **Accent desde Theme**: Los organisms (`CyberZenModal`, etc.) deben leer el acento del usuario via `Theme.of(context).extension<CyberThemeExtension>()?.accentColor ?? CyberTheme.defaultAccent`. Nunca hardcodear `CyberTheme.defaultAccent` en widgets que se muestran al usuario.
+Tokens base:
+- `bgObsidian` (`0xFF000000`): fondo OLED negro puro
+- `textNeutral` (`0xFFFFFFFF`): texto principal
+- `errorRed` (`0xFFE53935`): error crítico
+- `defaultAccent` (`0xFF00E676`): acento primario por defecto
 
-## 4. MOTOR SRS — REGLAS CRÍTICAS
+Reglas visuales:
+- Los acentos del usuario se leen desde `settingsProvider`.
+- Los organisms deben usar `Theme.of(context).extension<CyberThemeExtension>()?.accentColor ?? CyberTheme.defaultAccent`.
+- `flutter_animate` se usa para micro-interacciones de UI; no introducir `AnimationController` manual salvo para animación explícita de trazos SVG.
 
-### InputValidator (kz_domain)
-*   Soporta alternativas romaji: `si`→`shi`, `ti`→`chi`, `tu`→`tsu`, `hu`→`fu`, `zi`→`ji`, `sya`→`sha`, `tya`→`cha`, etc.
-*   **CRÍTICO**: Los checks de alternativas COMPLETAS deben ejecutarse ANTES del check de prefijos en `evaluateStep()`. Si 'si' está en `_multiCharRomaji['shi']` como prefijo, la comprobación de éxito nunca se alcanza — el orden importa.
-*   `_multiCharRomaji` contiene solo **prefijos** parciales para cada romaji multi-char. Los matches completos se manejan en los `if` explícitos al inicio de `evaluateStep`.
+## 3. ARQUITECTURA DEL MONOREPO
+El proyecto está dividido por capas DDD:
 
-### MecaEvaluator (kz_domain)
-*   Motor de evaluación on-change para el motor MECA.
-*   Idéntico orden de precedencia: alternativas completas → prefijo canónico → prefijos de alternativas → error.
-*   Usa `const _romajiAlternatives` (top-level) para el mapeo.
+1. `kz_core`: constantes, tema Cyber-Zen, contratos abstractos e interfaces.
+2. `kz_data`: entidades Isar, repositorios locales, servicios de seed y parseo de datos.
+3. `kz_domain`: lógica pura de negocio, modelos Freezed, validadores, SRS, settings.
+4. `kz_ui_components`: sistema atómico UI, painters vectoriales, modales y widgets reutilizables.
+5. `kanjizen_app`: orquestación Flutter, rutas, pantallas, providers y composición final.
 
-### TierCalculator (kz_domain)
-*   `calculate({hitRate, avgMs, isUnlocked})` devuelve `KanaTier.e` si:
-    - `!isUnlocked`
-    - `avgMs == 0 && hitRate == 0.0` (sin práctica aún — evita inflar tier)
-*   El `avgMs=0` **NO** se trata como "rápido" — no suma puntos al score.
+## 4. ESTRUCTURA ACTUAL DEL APP
+Rutas principales:
 
-### GameNotifier (kanjizen_app)
-*   Usa `final Random _random = Random()` (de `dart:math`) para la selección ponderada. **NO** usar `DateTime.now().microsecondsSinceEpoch % 1000` como fuente de aleatoriedad.
-*   `avgMs` en `GameState` es un **promedio móvil** de todos los intentos de la sesión, no el último tiempo de respuesta.
-*   Fórmula: `newAvgMs = prevAttempts > 0 ? ((state.avgMs * prevAttempts + responseMs) ~/ (prevAttempts + 1)) : responseMs`
+- `/` -> `SplashScreen`
+- `/auth` -> `AuthScreen`
+- `/home` -> `EngineSelectorScreen`
+- `/home/inventory` -> `InventoryDashboardScreen`
+- `/home/kanas` -> `KanaLevelMatrixScreen`
+- `/home/kanjis` -> `KanjiLevelMatrixScreen`
 
-### KanjiSrsNotifier (kanjizen_app)
-*   Penalizaciones por fase: `initial=0.1`, `withdrawal=0.25`, `inversion=0.5`, `discriminatory=0.1`.
-*   Tras cada intento, usar `_updatePoolAfterAttempt(updatedKanji)` para actualización en memoria. Solo llama a `_initializePool()` cuando `avgScore >= KzConstants.kanjiPoolThreshold (7.0)`.
-*   **NO** llamar a `_initializePool()` directamente en `recordSuccess`/`recordError` — es costoso (read completo de BD).
+Componentes clave actuales:
+- `GeneralDrawer` incluye botón `[ KANJIS ]` y acceso al perfil.
+- `ProfileDrawer` abre ajustes ampliados en un bottom sheet.
+- `CharacterDetailSheet` muestra KanjiVG animado y botón TTS.
+- `InventoryDashboardScreen` usa acento dinámico y autoexpande kanji al filtrar.
+- `TimelineProvider` hace que MECA sea infinito en sesiones normales.
 
-## 5. PERSISTENCIA DE DATOS Y RENDIMIENTO
+## 5. REGLAS ESTRUCTURALES Y UI
+1. `RayitaInput` debe seguir siendo minimalista: solo borde inferior y `shakeX` en error mediante `flutter_animate`.
+2. `KanjiVectorPainter` procesa rutas SVG de KanjiVG con `path_drawing`, admite modo estático y animado, e incluye `canvas.save()`/`canvas.restore()`.
+3. `KanjiVgPainter` acepta `Animation<double>` y se usa cuando hay una animación de trazos real.
+4. Los layouts sensibles al teclado deben usar `LayoutBuilder` y `viewInsets.bottom` para desplazar el input sin mover el canvas central.
+5. Cualquier cambio en `kz_data` o `kz_domain` requiere regenerar código con `dart run build_runner build --delete-conflicting-outputs`.
+6. Freezed v3+ debe declararse como `abstract class Modelo with _$Modelo`.
+
+## 6. MOTOR SRS Y VALIDACIÓN
+### InputValidator
+- Soporta alternativas romaji: `si->shi`, `ti->chi`, `tu->tsu`, `hu->fu`, `zi->ji`, `sya->sha`, `tya->cha`, etc.
+- Las alternativas completas se evalúan antes que los prefijos.
+- `_multiCharRomaji` debe contener solo prefijos parciales.
+
+### MecaEvaluator
+- Misma precedencia que `InputValidator`: alternativas completas -> prefijo canónico -> prefijos de alternativas -> error.
+
+### TierCalculator
+- `calculate({hitRate, avgMs, isUnlocked})` devuelve `KanaTier.e` si no está desbloqueado o si no existe práctica real (`avgMs == 0 && hitRate == 0.0`).
+- `avgMs = 0` no cuenta como rapidez.
+
+### GameNotifier
+- La selección ponderada usa `final Random _random = Random()`.
+- `avgMs` es promedio móvil de toda la sesión, no el último intento.
+
+### KanjiSrsNotifier
+- Penalizaciones actuales: `initial=0.1`, `withdrawal=0.25`, `inversion=0.5`, `discriminatory=0.1`.
+- `_updatePoolAfterAttempt(updatedKanji)` actualiza en memoria.
+- `_initializePool()` solo se llama cuando `avgScore >= KzConstants.kanjiPoolThreshold (7.0)`.
+
+## 7. PANTALLAS Y MODOS ACTUALES
+- MECA es infinito en sesiones normales; solo hay pantalla de reporte en campañas y game over hardcore.
+- `KanaLevelMatrixScreen` existe como mapa de niveles kana.
+- `KanjiLevelMatrixScreen` es la pantalla nueva de adquisición kanji en dos fases.
+- `InventoryDashboardScreen` y `ProfileDrawer` ya forman parte de la navegación principal.
+- `SettingsState` ya incluye `strokeWidth` y `strokeAnimationSpeed` además de audio, animación de trazos, hardcore y ajustes de grid.
+
+## 8. PERSISTENCIA Y RENDIMIENTO
 - No se permiten guardados asíncronos en el hilo principal durante el gameplay.
-- El historial se almacena en un `historyBlob` (Lista de enteros) manipulando bits (Codificando isCorrect, doubleStroke, responseMs) para evitar tablas relacionales pesadas.
-- Encoding: `bit 15 = isCorrect (0x8000)`, `bit 14 = isDoubleStroke (0x4000)`, `bits 0-13 = ms (0x3FFF)`.
-- La semilla inicial de la BD (138+ caracteres) se hace mediante `DatabaseInitializerService.seedInBackground()` (llamado desde Splash).
-- Los kanjis se siembran desde `assets/data/kanji_seed.json` en bloques de 1000 (`seedBatchSize`).
+- El historial usa `historyBlob` con enteros de 16 bits:
+    - bit 15 = `isCorrect` (`0x8000`)
+    - bit 14 = `isDoubleStroke` (`0x4000`)
+    - bits 0-13 = `ms` (`0x3FFF`)
+- La semilla inicial se carga desde `DatabaseInitializerService.seedInBackground()`.
+- Los kanjis se siembran desde `assets/data/kanji_seed.json` en lotes de 1000 (`seedBatchSize`).
 
-## 6. ESTADO DEL ANÁLISIS ESTÁTICO
-- **Última verificación**: `dart analyze` → **No issues found** (0 errores, 0 warnings, 0 infos).
-- Comando para re-verificar desde raíz del monorepo: `dart analyze`
+## 9. STACK ACTUAL
+- Flutter `>= 3.32.5`
+- Dart `>= 3.8.1`
+- Riverpod `2.6.1`
+- Freezed `3.0.0`
+- Isar `3.1.0+1`
+- GoRouter `14.8.1`
+- flutter_animate `4.5.2`
+- flutter_tts `4.2.3`
+- path_drawing `1.0.1`
+- lottie `3.3.1`
+
+## 10. ESTADO VERIFICADO DEL PROYECTO
+- `dart analyze` -> `No issues found`
+- `flutter run -d 11f2efaf` -> compiló, instaló y arrancó en Realme RMX5010 con Impeller/Vulkan
+- El último estado confirmado del repositorio está limpio y sincronizado con `origin/main`
+
+## 11. REGLA DE TRABAJO PARA AGENTES
+- Cambiar lo mínimo necesario.
+- No reescribir áreas fuera del alcance.
+- Si un cambio toca `kz_data` o `kz_domain`, validar regeneración de código y análisis estático.
 
 ---
-*Fin de las directivas. Actúa de forma pragmática, con latencia cero y omite cualquier "boilerplate" innecesario en tus respuestas.*
+Actúa de forma pragmática, con latencia cero, y omite boilerplate innecesario en las respuestas.

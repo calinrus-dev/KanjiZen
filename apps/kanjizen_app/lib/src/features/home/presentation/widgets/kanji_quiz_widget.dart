@@ -32,7 +32,11 @@ class KanjiQuizWidget extends ConsumerWidget {
               children: [
                 const Text(
                   'ENGINE: QUIZ 1.0',
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'Courier'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                  ),
                 ),
                 Text(
                   node.isSuccess ? 'ACERTADO' : 'ERRÓNEO',
@@ -48,13 +52,20 @@ class KanjiQuizWidget extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'CONCEPTO: ${node.kanji.meanings.first.toUpperCase()}',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontFamily: 'Courier',
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'RESPUESTA CORRECTA: ${node.kanji.character} | SELECCIONADO: ${node.selectedOption ?? "NINGUNO"}',
               style: TextStyle(
-                color: node.isSuccess ? accent.withValues(alpha: 0.7) : CyberTheme.errorRed.withValues(alpha: 0.7),
+                color: node.isSuccess
+                    ? accent.withValues(alpha: 0.7)
+                    : CyberTheme.errorRed.withValues(alpha: 0.7),
                 fontSize: 11,
                 fontFamily: 'Courier',
               ),

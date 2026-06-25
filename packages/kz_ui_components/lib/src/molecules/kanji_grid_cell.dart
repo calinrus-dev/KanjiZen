@@ -35,7 +35,9 @@ class KanjiGridCell extends StatelessWidget {
       child: AnimatedContainer(
         duration: 200.ms,
         decoration: BoxDecoration(
-          color: isLocked ? const Color(0xFF1A1D26) : accent.withValues(alpha: 0.07),
+          color: isLocked
+              ? const Color(0xFF1A1D26)
+              : accent.withValues(alpha: 0.07),
           border: Border.all(
             color: isLocked
                 ? const Color(0xFF2A2D36)

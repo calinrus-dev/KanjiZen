@@ -83,6 +83,8 @@ class _RayitaInputState extends State<RayitaInput> {
       ),
     );
 
-    return field.animate(target: widget.inputState == InputState.error ? 1 : 0).shakeX(duration: const Duration(milliseconds: 150));
+    return field
+        .animate(target: widget.inputState == InputState.error ? 1 : 0)
+        .shakeX(duration: const Duration(milliseconds: 150));
   }
 }

@@ -27,7 +27,9 @@ class CyberThemeExtension extends ThemeExtension<CyberThemeExtension> {
 
   @override
   ThemeExtension<CyberThemeExtension> lerp(
-      covariant ThemeExtension<CyberThemeExtension>? other, double t) {
+    covariant ThemeExtension<CyberThemeExtension>? other,
+    double t,
+  ) {
     if (other is! CyberThemeExtension) return this;
     return CyberThemeExtension(
       accentColor: Color.lerp(accentColor, other.accentColor, t)!,
@@ -35,7 +37,7 @@ class CyberThemeExtension extends ThemeExtension<CyberThemeExtension> {
           lerpDouble(fontMultiplier, other.fontMultiplier, t) ?? fontMultiplier,
       strokeMultiplier:
           lerpDouble(strokeMultiplier, other.strokeMultiplier, t) ??
-              strokeMultiplier,
+          strokeMultiplier,
     );
   }
 

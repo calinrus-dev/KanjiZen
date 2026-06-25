@@ -10,7 +10,8 @@ class KanaLevelMatrixScreen extends ConsumerStatefulWidget {
   const KanaLevelMatrixScreen({super.key});
 
   @override
-  ConsumerState<KanaLevelMatrixScreen> createState() => _KanaLevelMatrixScreenState();
+  ConsumerState<KanaLevelMatrixScreen> createState() =>
+      _KanaLevelMatrixScreenState();
 }
 
 class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
@@ -18,16 +19,26 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 
-  void _showLevelPreview(BuildContext context, KanaLevelModel level, Color accent) {
+  void _showLevelPreview(
+    BuildContext context,
+    KanaLevelModel level,
+    Color accent,
+  ) {
     final settings = ref.read(settingsProvider);
     final isHardcore = settings.hardcoreMode;
     final displayStars = isHardcore ? level.redStars : level.stars;
@@ -43,7 +54,9 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                level.isBoss ? 'ALERTA: ENFRENTAMIENTO JEFE' : 'NIVEL ${level.levelId}',
+                level.isBoss
+                    ? 'ALERTA: ENFRENTAMIENTO JEFE'
+                    : 'NIVEL ${level.levelId}',
                 style: TextStyle(
                   color: level.isBoss ? CyberTheme.errorRed : accent,
                   fontFamily: 'Courier',
@@ -62,30 +75,50 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
             children: [
               Text(
                 'MÉTODO: ${level.mode.toUpperCase()}',
-                style: const TextStyle(color: Colors.white70, fontFamily: 'Courier', fontSize: 11),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontFamily: 'Courier',
+                  fontSize: 11,
+                ),
               ),
               const SizedBox(height: 12),
               const Text(
                 'CARACTERES OBJETIVOS A EVALUAR:',
-                style: TextStyle(color: Colors.white38, fontFamily: 'Courier', fontSize: 9, letterSpacing: 1),
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontFamily: 'Courier',
+                  fontSize: 9,
+                  letterSpacing: 1,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 level.targetCharacters.join('   '),
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'Courier',
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 20),
               Row(
                 children: [
                   const Text(
                     'PUNTUACIÓN MÁXIMA: ',
-                    style: TextStyle(color: Colors.white38, fontFamily: 'Courier', fontSize: 9),
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontFamily: 'Courier',
+                      fontSize: 9,
+                    ),
                   ),
                   Row(
                     children: List.generate(3, (starIdx) {
                       return Icon(
                         starIdx < displayStars ? Icons.star : Icons.star_border,
-                        color: starIdx < displayStars ? starColor : starColor.withValues(alpha: 0.2),
+                        color: starIdx < displayStars
+                            ? starColor
+                            : starColor.withValues(alpha: 0.2),
                         size: 12,
                       );
                     }),
@@ -97,7 +130,14 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('VOLVER', style: TextStyle(color: Colors.white30, fontFamily: 'Courier', fontSize: 11)),
+              child: const Text(
+                'VOLVER',
+                style: TextStyle(
+                  color: Colors.white30,
+                  fontFamily: 'Courier',
+                  fontSize: 11,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -109,7 +149,12 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
               },
               child: Text(
                 'START LEVEL ENGINE',
-                style: TextStyle(color: level.isBoss ? CyberTheme.errorRed : accent, fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: level.isBoss ? CyberTheme.errorRed : accent,
+                  fontFamily: 'Courier',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -163,15 +208,30 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _ToggleBtn('HIRAGANA', _filterSystem == ProgressiveSystem.hira, accent, () {
-                    setState(() => _filterSystem = ProgressiveSystem.hira);
-                  }),
-                  _ToggleBtn('MIXTO', _filterSystem == ProgressiveSystem.both, accent, () {
-                    setState(() => _filterSystem = ProgressiveSystem.both);
-                  }),
-                  _ToggleBtn('KATAKANA', _filterSystem == ProgressiveSystem.kata, accent, () {
-                    setState(() => _filterSystem = ProgressiveSystem.kata);
-                  }),
+                  _ToggleBtn(
+                    'HIRAGANA',
+                    _filterSystem == ProgressiveSystem.hira,
+                    accent,
+                    () {
+                      setState(() => _filterSystem = ProgressiveSystem.hira);
+                    },
+                  ),
+                  _ToggleBtn(
+                    'MIXTO',
+                    _filterSystem == ProgressiveSystem.both,
+                    accent,
+                    () {
+                      setState(() => _filterSystem = ProgressiveSystem.both);
+                    },
+                  ),
+                  _ToggleBtn(
+                    'KATAKANA',
+                    _filterSystem == ProgressiveSystem.kata,
+                    accent,
+                    () {
+                      setState(() => _filterSystem = ProgressiveSystem.kata);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -179,24 +239,38 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
             // Grid sequential body
             Expanded(
               child: campaignState.when(
-                loading: () => Center(child: CircularProgressIndicator(color: accent)),
-                error: (err, _) => Center(child: Text('Error: $err', style: const TextStyle(color: CyberTheme.errorRed))),
+                loading: () =>
+                    Center(child: CircularProgressIndicator(color: accent)),
+                error: (err, _) => Center(
+                  child: Text(
+                    'Error: $err',
+                    style: const TextStyle(color: CyberTheme.errorRed),
+                  ),
+                ),
                 data: (levels) {
                   // Filter levels by script selected tab
                   final filtered = levels.where((l) {
-                    if (_filterSystem == ProgressiveSystem.hira) return l.levelId <= 50;
-                    if (_filterSystem == ProgressiveSystem.kata) return l.levelId > 50;
+                    if (_filterSystem == ProgressiveSystem.hira) {
+                      return l.levelId <= 50;
+                    }
+                    if (_filterSystem == ProgressiveSystem.kata) {
+                      return l.levelId > 50;
+                    }
                     return true;
                   }).toList();
 
                   return GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 5,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 0.9,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
                     ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 5,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 0.9,
+                        ),
                     itemCount: filtered.length,
                     itemBuilder: (ctx, index) {
                       final level = filtered[index];
@@ -208,16 +282,26 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                         content = Container(
                           decoration: BoxDecoration(
                             color: Colors.transparent,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
                             borderRadius: BorderRadius.circular(2),
                           ),
                           alignment: Alignment.center,
-                          child: const Icon(Icons.lock_outline, size: 14, color: Colors.white24),
+                          child: const Icon(
+                            Icons.lock_outline,
+                            size: 14,
+                            color: Colors.white24,
+                          ),
                         );
                       } else {
                         final isHardcore = settings.hardcoreMode;
-                        final displayStars = isHardcore ? level.redStars : level.stars;
-                        final starColor = isHardcore ? CyberTheme.errorRed : accent;
+                        final displayStars = isHardcore
+                            ? level.redStars
+                            : level.stars;
+                        final starColor = isHardcore
+                            ? CyberTheme.errorRed
+                            : accent;
 
                         content = Container(
                           decoration: BoxDecoration(
@@ -249,8 +333,12 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: List.generate(3, (starIdx) {
                                   return Icon(
-                                    starIdx < displayStars ? Icons.star : Icons.star_border,
-                                    color: starIdx < displayStars ? starColor : starColor.withValues(alpha: 0.15),
+                                    starIdx < displayStars
+                                        ? Icons.star
+                                        : Icons.star_border,
+                                    color: starIdx < displayStars
+                                        ? starColor
+                                        : starColor.withValues(alpha: 0.15),
                                     size: 9,
                                   );
                                 }),

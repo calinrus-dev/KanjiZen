@@ -37,7 +37,11 @@ class ExerciseReportWidget extends ConsumerWidget {
                   letterSpacing: 2,
                 ),
               ),
-              const Icon(Icons.analytics_outlined, color: Colors.white24, size: 16),
+              const Icon(
+                Icons.analytics_outlined,
+                color: Colors.white24,
+                size: 16,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -46,9 +50,21 @@ class ExerciseReportWidget extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatColumn('ACIERTO', '${(node.hitRate * 100).toStringAsFixed(0)}%', accent),
-              _buildStatColumn('CORRECTAS', '${node.successes}/${node.totalQuestions}', Colors.white70),
-              _buildStatColumn('ERRORES', '${node.errors}', CyberTheme.errorRed),
+              _buildStatColumn(
+                'ACIERTO',
+                '${(node.hitRate * 100).toStringAsFixed(0)}%',
+                accent,
+              ),
+              _buildStatColumn(
+                'CORRECTAS',
+                '${node.successes}/${node.totalQuestions}',
+                Colors.white70,
+              ),
+              _buildStatColumn(
+                'ERRORES',
+                '${node.errors}',
+                CyberTheme.errorRed,
+              ),
               _buildStatColumn('LATENCIA', '${node.avgMs}ms', accent),
             ],
           ),
@@ -58,7 +74,8 @@ class ExerciseReportWidget extends ConsumerWidget {
           Consumer(
             builder: (ctx, refWatch, _) {
               final activeNodes = refWatch.watch(timelineProvider).activeNodes;
-              final isLast = activeNodes.isNotEmpty && activeNodes.last.id == node.id;
+              final isLast =
+                  activeNodes.isNotEmpty && activeNodes.last.id == node.id;
 
               if (!isLast) return const SizedBox.shrink();
 
@@ -68,7 +85,10 @@ class ExerciseReportWidget extends ConsumerWidget {
                     ref.read(timelineProvider.notifier).generateNextNode();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: accent),
                       borderRadius: BorderRadius.circular(2),
@@ -99,12 +119,22 @@ class ExerciseReportWidget extends ConsumerWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white24, fontFamily: 'Courier', fontSize: 8, letterSpacing: 1),
+          style: const TextStyle(
+            color: Colors.white24,
+            fontFamily: 'Courier',
+            fontSize: 8,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           value,
-          style: TextStyle(color: color, fontFamily: 'Courier', fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: color,
+            fontFamily: 'Courier',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );

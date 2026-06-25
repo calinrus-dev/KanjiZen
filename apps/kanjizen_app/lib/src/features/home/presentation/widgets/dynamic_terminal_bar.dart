@@ -34,21 +34,26 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
     if (lastNode == null) return const SizedBox.shrink();
 
     // Listen to clear event from provider
-    ref.listen<String>(timelineProvider.select((s) {
-      final node = s.activeNodes.isNotEmpty ? s.activeNodes.last : null;
-      if (node is MecaInputNode) return node.inputText;
-      if (node is KanjiProductionNode) return node.inputText;
-      if (node is ConceptRecallNode) return node.inputText;
-      return '';
-    }), (_, next) {
-      if (next.isEmpty && _textController.text.isNotEmpty) {
-        _textController.clear();
-      }
-    });
+    ref.listen<String>(
+      timelineProvider.select((s) {
+        final node = s.activeNodes.isNotEmpty ? s.activeNodes.last : null;
+        if (node is MecaInputNode) return node.inputText;
+        if (node is KanjiProductionNode) return node.inputText;
+        if (node is ConceptRecallNode) return node.inputText;
+        return '';
+      }),
+      (_, next) {
+        if (next.isEmpty && _textController.text.isNotEmpty) {
+          _textController.clear();
+        }
+      },
+    );
 
     Widget barContent;
 
-    if (lastNode is MecaInputNode || lastNode is KanjiProductionNode || lastNode is ConceptRecallNode) {
+    if (lastNode is MecaInputNode ||
+        lastNode is KanjiProductionNode ||
+        lastNode is ConceptRecallNode) {
       // TerminalMode - keyboard typing
       if (!_focusNode.hasFocus && !timelineState.isPaused) {
         _focusNode.requestFocus();
@@ -115,11 +120,23 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
               onTap: () {
                 ref.read(timelineProvider.notifier).onQuizOptionSelected(opt);
               },
-              child: Container(
+              borderRadius: BorderRadius.circular(6),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
                 decoration: BoxDecoration(
-                  border: Border.all(color: accent.withValues(alpha: 0.3)),
-                  borderRadius: BorderRadius.circular(4),
-                  color: accent.withValues(alpha: 0.02),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.4),
+                    width: 1.2,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  color: accent.withValues(alpha: 0.04),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.08),
+                      blurRadius: 6,
+                      spreadRadius: 0.5,
+                    ),
+                  ],
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -128,7 +145,7 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
                     color: Colors.white,
                     fontSize: 24,
                     fontFamily: 'Courier',
-                    fontWeight: FontWeight.w300,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -155,17 +172,29 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
               feedback: Material(
                 color: Colors.transparent,
                 child: Container(
-                  width: 60,
-                  height: 60,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.2),
-                    border: Border.all(color: accent, width: 2),
+                    color: accent.withValues(alpha: 0.25),
+                    border: Border.all(color: accent, width: 2.0),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     k.character,
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontFamily: 'Courier',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -173,17 +202,34 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: Colors.white10, width: 1.0),
                   shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.01),
                 ),
               ),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  border: Border.all(color: accent.withValues(alpha: 0.5)),
+                  gradient: RadialGradient(
+                    colors: [
+                      accent.withValues(alpha: 0.15),
+                      Colors.transparent,
+                    ],
+                  ),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
                 alignment: Alignment.center,
                 child: Text(

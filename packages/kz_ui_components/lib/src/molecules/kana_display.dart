@@ -35,7 +35,10 @@ class KanaDisplay extends StatelessWidget {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                border: Border.all(color: accent.withValues(alpha: 0.3), width: 1),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.3),
+                  width: 1,
+                ),
                 color: accent.withValues(alpha: 0.04),
               ),
               child: Stack(

@@ -39,7 +39,7 @@ class DatabaseInitializerService {
   static Future<void> seedInBackground() async {
     try {
       final isar = await openDb();
-      
+
       final kanaSeeded = await isKanaSeeded();
       if (!kanaSeeded) {
         final entities = KanaSeedData.all.map((s) {
@@ -71,7 +71,9 @@ class DatabaseInitializerService {
       final kanjiSeeded = await isKanjiSeeded();
       if (!kanjiSeeded) {
         try {
-          final kanjiJsonStr = await rootBundle.loadString('assets/data/kanji_seed.json');
+          final kanjiJsonStr = await rootBundle.loadString(
+            'assets/data/kanji_seed.json',
+          );
           final List<dynamic> data = jsonDecode(kanjiJsonStr) as List<dynamic>;
           final List<KanjiEntity> entities = [];
 
@@ -81,9 +83,15 @@ class DatabaseInitializerService {
               ..character = map['character'] as String
               ..onyomi = List<String>.from(map['onyomi'] as Iterable<dynamic>)
               ..kunyomi = List<String>.from(map['kunyomi'] as Iterable<dynamic>)
-              ..meanings = List<String>.from(map['meanings'] as Iterable<dynamic>)
-              ..radicals = List<String>.from(map['radicals'] as Iterable<dynamic>)
-              ..svgPaths = List<String>.from(map['svgPaths'] as Iterable<dynamic>)
+              ..meanings = List<String>.from(
+                map['meanings'] as Iterable<dynamic>,
+              )
+              ..radicals = List<String>.from(
+                map['radicals'] as Iterable<dynamic>,
+              )
+              ..svgPaths = List<String>.from(
+                map['svgPaths'] as Iterable<dynamic>,
+              )
               ..isUnlocked = false
               ..historyBlob = []
               ..currentHitRate = 0.0
@@ -98,11 +106,19 @@ class DatabaseInitializerService {
               e.radical = '';
             }
 
-            e.jlpt = map.containsKey('jlpt') ? map['jlpt'] as int : 0;
-            e.joyo = map.containsKey('joyo') ? map['joyo'] as int : 0;
-            e.isJinmeiyo = map.containsKey('isJinmeiyo') ? map['isJinmeiyo'] as bool : false;
-            e.kanjidicTranslations = map.containsKey('kanjidicTranslations') 
-                ? List<String>.from(map['kanjidicTranslations'] as Iterable<dynamic>) 
+            e.jlpt = map.containsKey('jlpt') && map['jlpt'] is num
+                ? (map['jlpt'] as num).toInt()
+                : 0;
+            e.joyo = map.containsKey('joyo') && map['joyo'] is num
+                ? (map['joyo'] as num).toInt()
+                : 0;
+            e.isJinmeiyo = map.containsKey('isJinmeiyo')
+                ? map['isJinmeiyo'] as bool
+                : false;
+            e.kanjidicTranslations = map.containsKey('kanjidicTranslations')
+                ? List<String>.from(
+                    map['kanjidicTranslations'] as Iterable<dynamic>,
+                  )
                 : [];
 
             entities.add(e);

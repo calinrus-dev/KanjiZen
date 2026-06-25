@@ -1,0 +1,45 @@
+name: KanjiZen CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  analyze_and_test:
+    name: Code Quality & Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java (Android requirement)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🐦 Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Melos
+        run: dart pub global activate melos
+
+      - name: ⚙️ Bootstrap Workspace
+        run: |
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+          dart pub global run melos bootstrap
+
+      - name: ✨ Verify Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: 🔍 Static Analysis
+        run: dart pub global run melos run analyze
+
+      - name: 🧪 Run Unit & Widget Tests
+        run: dart pub global run melos run test

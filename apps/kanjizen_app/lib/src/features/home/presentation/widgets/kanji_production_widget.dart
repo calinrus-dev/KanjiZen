@@ -6,11 +6,8 @@ import 'package:kz_ui_components/kz_ui_components.dart';
 import 'package:kanjizen_app/src/providers/timeline_provider.dart';
 
 class KanjiProductionWidget extends ConsumerWidget {
-  const KanjiProductionWidget({
-    super.key,
-    this.productionNode,
-    this.recallNode,
-  }) : assert(productionNode != null || recallNode != null);
+  const KanjiProductionWidget({super.key, this.productionNode, this.recallNode})
+    : assert(productionNode != null || recallNode != null);
 
   final KanjiProductionNode? productionNode;
   final ConceptRecallNode? recallNode;
@@ -46,24 +43,44 @@ class KanjiProductionWidget extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isRecall ? 'ENGINE: KANJI 1.0 (RECALL)' : 'ENGINE: KANJI 1.0 (PRODUCTION)',
-                  style: const TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'Courier'),
+                  isRecall
+                      ? 'ENGINE: KANJI 1.0 (RECALL)'
+                      : 'ENGINE: KANJI 1.0 (PRODUCTION)',
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                  ),
                 ),
                 Text(
                   'COMPLETADO',
-                  style: TextStyle(color: accent, fontSize: 10, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'KANJI: ${kanji.character} [${kanji.meanings.first.toUpperCase()}]',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontFamily: 'Courier',
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'SRS SCORE: ${kanji.srsScore.toStringAsFixed(1)} | ON: ${kanji.onyomi.join(", ")} | KUN: ${kanji.kunyomi.join(", ")}',
-              style: TextStyle(color: accent.withValues(alpha: 0.7), fontSize: 11, fontFamily: 'Courier'),
+              style: TextStyle(
+                color: accent.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontFamily: 'Courier',
+              ),
             ),
           ],
         ),
@@ -110,7 +127,8 @@ class KanjiProductionWidget extends ConsumerWidget {
               height: 180,
               child: Opacity(
                 opacity: opacity,
-                child: settings.enableStrokeAnimation && kanji.svgPaths.isNotEmpty
+                child:
+                    settings.enableStrokeAnimation && kanji.svgPaths.isNotEmpty
                     ? CustomPaint(
                         painter: KanjiVectorPainter(
                           svgPaths: kanji.svgPaths,
@@ -124,7 +142,9 @@ class KanjiProductionWidget extends ConsumerWidget {
                             color: Colors.white,
                             fontSize: 140,
                             fontFamily: 'Courier',
-                            fontWeight: useBold ? FontWeight.w900 : FontWeight.w100,
+                            fontWeight: useBold
+                                ? FontWeight.w900
+                                : FontWeight.w100,
                           ),
                         ),
                       ),

@@ -44,7 +44,8 @@ class TierCalculator {
     // 1 bit correcto (0x8000), 1 bit doubleStroke (0x4000), 14 bits ms
     int flag = isCorrect ? 0x8000 : 0;
     if (isDoubleStroke) flag |= 0x4000;
-    return flag | (responseMs & 0x3FFF);
+    final clampedMs = responseMs.clamp(0, 0x3FFF);
+    return flag | clampedMs;
   }
 
   static ({double hitRate, int avgMs}) calculateStats(List<int> blob) {

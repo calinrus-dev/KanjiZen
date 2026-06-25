@@ -23,7 +23,8 @@ class KanjiEntity {
   @Index()
   bool isJinmeiyo = false; // Para nombres
 
-  List<String> kanjidicTranslations = []; // Traducciones de diccionario oficiales
+  List<String> kanjidicTranslations =
+      []; // Traducciones de diccionario oficiales
 
   /// Lista de Onyomis (Lecturas chinas) en Katakana.
   List<String> onyomi = [];

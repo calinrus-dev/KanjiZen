@@ -38,15 +38,21 @@ class KanaCampaignScreen extends ConsumerWidget {
           child: CircularProgressIndicator(color: CyberTheme.defaultAccent),
         ),
         error: (err, st) => Center(
-          child: Text('Error: $err', style: const TextStyle(color: CyberTheme.errorRed)),
+          child: Text(
+            'Error: $err',
+            style: const TextStyle(color: CyberTheme.errorRed),
+          ),
         ),
         data: (levels) {
           if (levels.isEmpty) {
             return const Center(
-              child: Text('Sin niveles', style: TextStyle(color: CyberTheme.textNeutral)),
+              child: Text(
+                'Sin niveles',
+                style: TextStyle(color: CyberTheme.textNeutral),
+              ),
             );
           }
-          
+
           return ListView.builder(
             padding: const EdgeInsets.all(24),
             itemCount: levels.length,
@@ -68,7 +74,9 @@ class _LevelNode extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bool isHardcore = level.redStars > 0;
-    final Color mainColor = isHardcore ? CyberTheme.errorRed : CyberTheme.defaultAccent;
+    final Color mainColor = isHardcore
+        ? CyberTheme.errorRed
+        : CyberTheme.defaultAccent;
     final double opacity = level.isUnlocked ? 1.0 : 0.3;
 
     return GestureDetector(
@@ -83,9 +91,13 @@ class _LevelNode extends ConsumerWidget {
         margin: const EdgeInsets.only(bottom: 24),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: level.isUnlocked ? mainColor.withValues(alpha: 0.1) : Colors.transparent,
+          color: level.isUnlocked
+              ? mainColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           border: Border.all(
-            color: level.isUnlocked ? mainColor : CyberTheme.textNeutral.withValues(alpha: 0.2),
+            color: level.isUnlocked
+                ? mainColor
+                : CyberTheme.textNeutral.withValues(alpha: 0.2),
             width: level.isUnlocked ? 1.5 : 1.0,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -121,7 +133,11 @@ class _LevelNode extends ConsumerWidget {
                     Row(
                       children: [
                         if (level.isBoss) ...[
-                          Icon(Icons.warning_amber_rounded, color: mainColor, size: 16),
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: mainColor,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                         ],
                         Text(

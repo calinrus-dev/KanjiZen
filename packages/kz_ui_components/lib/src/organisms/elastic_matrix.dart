@@ -25,7 +25,10 @@ class ElasticMatrix extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // La fuente se calcula como el 30% del alto disponible, limitada entre 60 y 240
-        final dynamicFontSize = (constraints.maxHeight * 0.3).clamp(60.0, 240.0);
+        final dynamicFontSize = (constraints.maxHeight * 0.3).clamp(
+          60.0,
+          240.0,
+        );
 
         return Center(
           child: Column(

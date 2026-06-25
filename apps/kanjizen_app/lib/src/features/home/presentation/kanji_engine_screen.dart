@@ -21,7 +21,11 @@ class KanjiEngineScreen extends ConsumerWidget {
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.style, size: 48, color: accent.withValues(alpha: 0.5)),
+                Icon(
+                  Icons.style,
+                  size: 48,
+                  color: accent.withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 24),
                 Text(
                   'SISTEMA DE REPETICIÓN ESPACIADA',
@@ -49,7 +53,10 @@ class KanjiEngineScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 32),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   margin: const EdgeInsets.symmetric(horizontal: 32),
                   decoration: BoxDecoration(
                     border: Border.all(color: accent.withValues(alpha: 0.2)),
@@ -58,8 +65,16 @@ class KanjiEngineScreen extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _StatItem('KANJIS ACTIVOS', srsState.activePool.length.toString(), accent),
-                      _StatItem('DOMINIO MEDIO', srsState.averagePoolScore.toStringAsFixed(1), accent),
+                      _StatItem(
+                        'KANJIS ACTIVOS',
+                        srsState.activePool.length.toString(),
+                        accent,
+                      ),
+                      _StatItem(
+                        'DOMINIO MEDIO',
+                        srsState.averagePoolScore.toStringAsFixed(1),
+                        accent,
+                      ),
                     ],
                   ),
                 ),
@@ -83,12 +98,18 @@ class KanjiEngineScreen extends ConsumerWidget {
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 }

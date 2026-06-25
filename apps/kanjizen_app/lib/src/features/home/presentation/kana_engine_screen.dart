@@ -19,15 +19,36 @@ class KanaEngineScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _ToggleBtn('HIRAGANA', settings.progressiveSystem == ProgressiveSystem.hira, accent, () {
-                ref.read(settingsProvider.notifier).setProgressiveSystem(ProgressiveSystem.hira);
-              }),
-              _ToggleBtn('MIX', settings.progressiveSystem == ProgressiveSystem.both, accent, () {
-                ref.read(settingsProvider.notifier).setProgressiveSystem(ProgressiveSystem.both);
-              }),
-              _ToggleBtn('KATAKANA', settings.progressiveSystem == ProgressiveSystem.kata, accent, () {
-                ref.read(settingsProvider.notifier).setProgressiveSystem(ProgressiveSystem.kata);
-              }),
+              _ToggleBtn(
+                'HIRAGANA',
+                settings.progressiveSystem == ProgressiveSystem.hira,
+                accent,
+                () {
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setProgressiveSystem(ProgressiveSystem.hira);
+                },
+              ),
+              _ToggleBtn(
+                'MIX',
+                settings.progressiveSystem == ProgressiveSystem.both,
+                accent,
+                () {
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setProgressiveSystem(ProgressiveSystem.both);
+                },
+              ),
+              _ToggleBtn(
+                'KATAKANA',
+                settings.progressiveSystem == ProgressiveSystem.kata,
+                accent,
+                () {
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setProgressiveSystem(ProgressiveSystem.kata);
+                },
+              ),
             ],
           ),
         ),
@@ -46,14 +67,31 @@ class KanaEngineScreen extends ConsumerWidget {
               final isUnlocked = level <= 3; // Placeholder progression
               return Container(
                 decoration: BoxDecoration(
-                  color: isUnlocked ? accent.withValues(alpha: 0.1) : Colors.transparent,
-                  border: Border.all(color: isUnlocked ? accent.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.1)),
+                  color: isUnlocked
+                      ? accent.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: isUnlocked
+                        ? accent.withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.1),
+                  ),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Center(
                   child: isUnlocked
-                    ? Text('$level', style: TextStyle(color: accent, fontFamily: 'Courier', fontWeight: FontWeight.bold))
-                    : Icon(Icons.lock, size: 16, color: Colors.white.withValues(alpha: 0.2)),
+                      ? Text(
+                          '$level',
+                          style: TextStyle(
+                            color: accent,
+                            fontFamily: 'Courier',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : Icon(
+                          Icons.lock,
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
                 ),
               );
             },
@@ -65,12 +103,18 @@ class KanaEngineScreen extends ConsumerWidget {
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 }
@@ -90,7 +134,9 @@ class _ToggleBtn extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? accent.withValues(alpha: 0.15) : Colors.transparent,
-          border: Border.all(color: isActive ? accent : Colors.white.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: isActive ? accent : Colors.white.withValues(alpha: 0.2),
+          ),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(

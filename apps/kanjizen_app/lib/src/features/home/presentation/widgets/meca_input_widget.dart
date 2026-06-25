@@ -34,23 +34,41 @@ class MecaInputWidget extends ConsumerWidget {
               children: [
                 const Text(
                   'ENGINE: MECA 1.0',
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'Courier'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                  ),
                 ),
                 Text(
                   'COMPLETADO',
-                  style: TextStyle(color: accent, fontSize: 10, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'CADENA: $charsStr',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontFamily: 'Courier',
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'TELEMETRÍA: Racha: ${node.streak} | ms: ${node.avgMs}ms | A: ${(node.hitRate * 100).toStringAsFixed(0)}%',
-              style: TextStyle(color: accent.withValues(alpha: 0.7), fontSize: 11, fontFamily: 'Courier'),
+              style: TextStyle(
+                color: accent.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontFamily: 'Courier',
+              ),
             ),
           ],
         ),
@@ -64,7 +82,8 @@ class MecaInputWidget extends ConsumerWidget {
       isPaused: timelineState.isPaused,
       layoutMode: ref.watch(settingsProvider).layoutMode,
       useBold: useBold,
-      isNeonError: timelineState.isNeonErrorActive, // Asumiendo que añadiremos esto al timelineProvider
+      isNeonError: timelineState
+          .isNeonErrorActive, // Asumiendo que añadiremos esto al timelineProvider
     );
   }
 

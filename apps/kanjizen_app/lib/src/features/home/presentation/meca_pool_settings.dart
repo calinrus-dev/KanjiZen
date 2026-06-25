@@ -29,7 +29,8 @@ class MecaPoolSettings extends ConsumerWidget {
       ),
       padding: EdgeInsets.only(
         top: 24,
-        left: 24, right: 24,
+        left: 24,
+        right: 24,
         bottom: MediaQuery.of(context).padding.bottom + 24,
       ),
       child: Column(
@@ -41,7 +42,13 @@ class MecaPoolSettings extends ConsumerWidget {
             children: [
               Text(
                 'MODO DE GENERACIÓN DEL POZO',
-                style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                style: TextStyle(
+                  color: accent,
+                  fontFamily: 'Courier',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
               ),
               Row(
                 children: [
@@ -62,21 +69,34 @@ class MecaPoolSettings extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Toggle AUTO / CUSTOM
           Row(
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => ref.read(settingsProvider.notifier).setPoolMode(PoolMode.auto),
+                  onTap: () => ref
+                      .read(settingsProvider.notifier)
+                      .setPoolMode(PoolMode.auto),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: isAuto ? accent.withValues(alpha: 0.2) : Colors.transparent,
-                      border: Border.all(color: isAuto ? accent : Colors.white12),
+                      color: isAuto
+                          ? accent.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: isAuto ? accent : Colors.white12,
+                      ),
                     ),
                     child: Center(
-                      child: Text('AUTO', style: TextStyle(color: isAuto ? accent : Colors.white54, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'AUTO',
+                        style: TextStyle(
+                          color: isAuto ? accent : Colors.white54,
+                          fontFamily: 'Courier',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -84,15 +104,28 @@ class MecaPoolSettings extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => ref.read(settingsProvider.notifier).setPoolMode(PoolMode.custom),
+                  onTap: () => ref
+                      .read(settingsProvider.notifier)
+                      .setPoolMode(PoolMode.custom),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: !isAuto ? accent.withValues(alpha: 0.2) : Colors.transparent,
-                      border: Border.all(color: !isAuto ? accent : Colors.white12),
+                      color: !isAuto
+                          ? accent.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: !isAuto ? accent : Colors.white12,
+                      ),
                     ),
                     child: Center(
-                      child: Text('CUSTOM', style: TextStyle(color: !isAuto ? accent : Colors.white54, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'CUSTOM',
+                        style: TextStyle(
+                          color: !isAuto ? accent : Colors.white54,
+                          fontFamily: 'Courier',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -100,16 +133,21 @@ class MecaPoolSettings extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           Text(
-            isAuto 
-              ? 'El motor SRS solo escupe caracteres desbloqueados legítimamente desde KANA 1.0.'
-              : 'Despliega la rejilla Flick nativa (A1-B4) para forzar caracteres.',
-            style: const TextStyle(color: Colors.white70, fontFamily: 'Courier', fontSize: 11, height: 1.4),
+            isAuto
+                ? 'El motor SRS solo escupe caracteres desbloqueados legítimamente desde KANA 1.0.'
+                : 'Despliega la rejilla Flick nativa (A1-B4) para forzar caracteres.',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontFamily: 'Courier',
+              fontSize: 11,
+              height: 1.4,
+            ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Custom Grid Mockup
           if (!isAuto)
             GridView.builder(
@@ -123,14 +161,30 @@ class MecaPoolSettings extends ConsumerWidget {
               ),
               itemCount: 12,
               itemBuilder: (context, index) {
-                final labels = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ', '、', 'ん'];
+                final labels = [
+                  'あ',
+                  'か',
+                  'さ',
+                  'た',
+                  'な',
+                  'は',
+                  'ま',
+                  'や',
+                  'ら',
+                  'わ',
+                  '、',
+                  'ん',
+                ];
                 return Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: accent.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Center(
-                    child: Text(labels[index], style: TextStyle(color: accent, fontSize: 18)),
+                    child: Text(
+                      labels[index],
+                      style: TextStyle(color: accent, fontSize: 18),
+                    ),
                   ),
                 );
               },
@@ -142,12 +196,18 @@ class MecaPoolSettings extends ConsumerWidget {
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
-      case CyberAccent.green: return CyberTheme.defaultAccent;
-      case CyberAccent.red: return CyberTheme.errorRed;
-      case CyberAccent.orange: return Colors.orange;
-      case CyberAccent.blue: return Colors.cyanAccent;
-      case CyberAccent.purple: return Colors.purpleAccent;
-      case CyberAccent.white: return Colors.white;
+      case CyberAccent.green:
+        return CyberTheme.defaultAccent;
+      case CyberAccent.red:
+        return CyberTheme.errorRed;
+      case CyberAccent.orange:
+        return Colors.orange;
+      case CyberAccent.blue:
+        return Colors.cyanAccent;
+      case CyberAccent.purple:
+        return Colors.purpleAccent;
+      case CyberAccent.white:
+        return Colors.white;
     }
   }
 }

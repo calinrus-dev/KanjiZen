@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kz_core/kz_core.dart';
@@ -85,14 +86,24 @@ class _CyberZenModalState extends State<CyberZenModal>
     );
 
     return Scaffold(
-      backgroundColor: CyberTheme.bgObsidian.withValues(alpha: 0.95),
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
+          // Glassmorphic Background Blur
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                color: CyberTheme.bgObsidian.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+
           // Background Pattern
           Positioned.fill(
             child: CustomPaint(
               painter: BgPatternPainter(
-                accentColor: accent.withValues(alpha: 0.05),
+                accentColor: accent.withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -168,14 +179,28 @@ class _CyberZenModalState extends State<CyberZenModal>
 
                 // Stats
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
                   margin: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 24,
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: accent.withValues(alpha: 0.3)),
-                    color: accent.withValues(alpha: 0.05),
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    color: CyberTheme.bgObsidian.withValues(alpha: 0.6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,

@@ -141,7 +141,7 @@ class _KanjiDetailModalState extends State<KanjiDetailModal>
                 ),
 
                 const SizedBox(height: 32),
-                
+
                 // Meanings
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -158,7 +158,7 @@ class _KanjiDetailModalState extends State<KanjiDetailModal>
                 ),
 
                 const SizedBox(height: 24),
-                
+
                 // Onyomi & Kunyomi
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -190,7 +190,11 @@ class _KanjiDetailModalState extends State<KanjiDetailModal>
                           ],
                         ),
                       ),
-                      Container(width: 1, height: 40, color: accent.withValues(alpha: 0.2)),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: accent.withValues(alpha: 0.2),
+                      ),
                       Expanded(
                         child: Column(
                           children: [

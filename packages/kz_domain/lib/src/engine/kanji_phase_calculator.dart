@@ -1,10 +1,13 @@
 enum KanjiPhase {
   /// 0-2.99: Muestra Kanji + Romaji/Hiragana. Usuario teclea la lectura.
   initial,
+
   /// 3-4.99: Solo Kanji, sin pistas. Usuario teclea.
   withdrawal,
+
   /// 5-6.99: Muestra Concepto, requiere Kanji de memoria. Usuario teclea.
   inversion,
+
   /// 7-10: Discriminatorio relacional. Botones de opciones.
   discriminatory,
 }

@@ -698,7 +698,11 @@ class _AcquisitionEngineState extends ConsumerState<_AcquisitionEngine>
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.close, color: Colors.white38, size: 20),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(

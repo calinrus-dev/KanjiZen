@@ -15,6 +15,9 @@ class KanjiVectorPainter extends CustomPainter {
   final Color accentColor;
   final double progress;
 
+  // Caché estático global para evitar re-parsear cadenas SVG en cada frame de pintado
+  static final Map<String, Path> _pathCache = {};
+
   @override
   void paint(Canvas canvas, Size size) {
     if (svgPaths.isEmpty) return;
@@ -48,7 +51,10 @@ class KanjiVectorPainter extends CustomPainter {
       if (i > targetPathIndex) break;
 
       final pathString = svgPaths[i];
-      final path = parseSvgPathData(pathString);
+      final path = _pathCache.putIfAbsent(
+        pathString,
+        () => parseSvgPathData(pathString),
+      );
 
       if (i == targetPathIndex) {
         // Dibuja el trazo activo parcialmente (animación)

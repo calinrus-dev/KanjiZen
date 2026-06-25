@@ -83,18 +83,22 @@ class CharacterRepository {
 
   // ─── Kanji writes ─────────────────────────────────────────────────────────
 
-  Future<void> updateKanjiSrs(String character, double srsScore, int consecutiveFails) async {
+  Future<void> updateKanjiSrs(
+    String character,
+    double srsScore,
+    int consecutiveFails,
+  ) async {
     final isar = await _db;
     final entity = await isar.kanjiEntitys
         .filter()
         .characterEqualTo(character)
         .findFirst();
     if (entity == null) return;
-    
+
     entity
       ..srsScore = srsScore
       ..consecutiveFails = consecutiveFails;
-      
+
     await isar.writeTxn(() async => isar.kanjiEntitys.put(entity));
   }
 
@@ -117,7 +121,10 @@ class CharacterRepository {
   }) async {
     final isar = await _db;
     await isar.writeTxn(() async {
-      final kanji = await isar.kanjiEntitys.where().characterEqualTo(character).findFirst();
+      final kanji = await isar.kanjiEntitys
+          .where()
+          .characterEqualTo(character)
+          .findFirst();
       if (kanji != null) {
         kanji.historyBlob = historyBlob;
         kanji.currentHitRate = hitRate;

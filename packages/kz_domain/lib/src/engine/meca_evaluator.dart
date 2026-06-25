@@ -39,6 +39,11 @@ class MecaEvaluator {
       return MecaEvaluationResult.hit;
     }
 
+    // Prefijo válido del kana directo (ej. 'か' para 'かん')
+    if (targetKana.startsWith(input.trim())) {
+      return MecaEvaluationResult.prefix;
+    }
+
     // Verificar alternativas completas (ej. 'si' == 'shi')
     final alternatives = _romajiAlternatives[normalizedRomaji];
     if (alternatives != null && alternatives.contains(normalizedInput)) {

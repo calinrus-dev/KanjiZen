@@ -114,7 +114,9 @@ class _SplashScreenState extends State<SplashScreen>
               SizedBox(
                 width: 120,
                 child: LinearProgressIndicator(
-                  backgroundColor: CyberTheme.defaultAccent.withValues(alpha: 0.1),
+                  backgroundColor: CyberTheme.defaultAccent.withValues(
+                    alpha: 0.1,
+                  ),
                   valueColor: const AlwaysStoppedAnimation(
                     CyberTheme.defaultAccent,
                   ),

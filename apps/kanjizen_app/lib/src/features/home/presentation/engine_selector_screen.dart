@@ -20,12 +20,15 @@ class EngineSelectorScreen extends ConsumerStatefulWidget {
   const EngineSelectorScreen({super.key});
 
   @override
-  ConsumerState<EngineSelectorScreen> createState() => _EngineSelectorScreenState();
+  ConsumerState<EngineSelectorScreen> createState() =>
+      _EngineSelectorScreenState();
 }
 
-class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> with WidgetsBindingObserver {
+class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
+    with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   bool _showSnapToBottom = false;
+  bool _pausedByScroll = false;
 
   @override
   void initState() {
@@ -75,7 +78,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
     }
   }
 
-  void _showModeSelectorOverlay(BuildContext context, Color accent) {
+  void _showModeSelectorOverlay(
+    BuildContext context,
+    Color accent,
+    EngineMode activeMode,
+  ) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -90,9 +97,19 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
               padding: const EdgeInsets.all(24),
               margin: const EdgeInsets.symmetric(horizontal: 32),
               decoration: BoxDecoration(
-                color: const Color(0xFF05060A),
-                border: Border.all(color: accent.withValues(alpha: 0.2)),
-                borderRadius: BorderRadius.circular(4),
+                color: CyberTheme.bgObsidian.withValues(alpha: 0.9),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.1),
+                    blurRadius: 30,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -101,7 +118,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                     'SELECCIONAR MOTOR DE APRENDIZAJE',
                     style: TextStyle(
                       color: accent,
-                      fontSize: 10,
+                      fontSize: 11,
                       fontFamily: 'Courier',
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,
@@ -109,15 +126,45 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _buildOverlayModeBtn(ctx, 'MECA 1.0', EngineMode.meca, accent),
+                  _buildOverlayModeBtn(
+                    ctx,
+                    'MECA 1.0',
+                    EngineMode.meca,
+                    accent,
+                    activeMode == EngineMode.meca,
+                  ),
                   const SizedBox(height: 12),
-                  _buildOverlayModeBtn(ctx, 'KANJI 1.0', EngineMode.kanji, accent),
+                  _buildOverlayModeBtn(
+                    ctx,
+                    'KANJI 1.0',
+                    EngineMode.kanji,
+                    accent,
+                    activeMode == EngineMode.kanji,
+                  ),
                   const SizedBox(height: 12),
-                  _buildOverlayModeBtn(ctx, 'QUIZ 1.0', EngineMode.quiz, accent),
+                  _buildOverlayModeBtn(
+                    ctx,
+                    'QUIZ 1.0',
+                    EngineMode.quiz,
+                    accent,
+                    activeMode == EngineMode.quiz,
+                  ),
                   const SizedBox(height: 12),
-                  _buildOverlayModeBtn(ctx, 'ARCADE 1.0', EngineMode.arcade, accent),
+                  _buildOverlayModeBtn(
+                    ctx,
+                    'ARCADE 1.0',
+                    EngineMode.arcade,
+                    accent,
+                    activeMode == EngineMode.arcade,
+                  ),
                   const SizedBox(height: 12),
-                  _buildOverlayModeBtn(ctx, 'WRITE 1.0', EngineMode.write, accent),
+                  _buildOverlayModeBtn(
+                    ctx,
+                    'WRITE 1.0',
+                    EngineMode.write,
+                    accent,
+                    activeMode == EngineMode.write,
+                  ),
                   const SizedBox(height: 12),
                   _buildLockedOverlayModeBtn('AI_MODE (BLOQUEADO)'),
                 ],
@@ -129,31 +176,61 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
     );
   }
 
-  Widget _buildOverlayModeBtn(BuildContext ctx, String label, EngineMode mode, Color accent) {
+  Widget _buildOverlayModeBtn(
+    BuildContext ctx,
+    String label,
+    EngineMode mode,
+    Color accent,
+    bool isActive,
+  ) {
     return GestureDetector(
       onTap: () {
         ref.read(timelineProvider.notifier).setEngineMode(mode);
         Navigator.pop(ctx);
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white10),
-          borderRadius: BorderRadius.circular(2),
-          color: Colors.white.withValues(alpha: 0.01),
+          border: Border.all(
+            color: isActive ? accent : Colors.white10,
+            width: isActive ? 1.5 : 1.0,
+          ),
+          borderRadius: BorderRadius.circular(4),
+          color: isActive
+              ? accent.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.01),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         alignment: Alignment.center,
-        child: Text(
-          '[ $label ]',
-          style: TextStyle(
-            color: accent,
-            fontFamily: 'Courier',
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            decoration: TextDecoration.none,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isActive) ...[
+              Icon(Icons.circle, color: accent, size: 8),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : accent.withValues(alpha: 0.7),
+                fontFamily: 'Courier',
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -162,10 +239,10 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
   Widget _buildLockedOverlayModeBtn(String label) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(4),
         color: Colors.transparent,
       ),
       alignment: Alignment.center,
@@ -175,7 +252,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
           const Icon(Icons.lock_outline, color: Colors.white24, size: 14),
           const SizedBox(width: 8),
           Text(
-            '[ $label ]',
+            label,
             style: const TextStyle(
               color: Colors.white24,
               fontFamily: 'Courier',
@@ -189,11 +266,17 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
     );
   }
 
-  void _showContextSettings(BuildContext context, EngineMode mode, Color accent) {
+  void _showContextSettings(
+    BuildContext context,
+    EngineMode mode,
+    Color accent,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xFF000000), // Pure OLED Black
-      shape: Border(top: BorderSide(color: accent.withValues(alpha: 0.3), width: 1.5)),
+      shape: Border(
+        top: BorderSide(color: accent.withValues(alpha: 0.3), width: 1.5),
+      ),
       isScrollControlled: true,
       builder: (_) {
         return Consumer(
@@ -348,10 +431,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                       label: 'NÚMERO DE CARRILES ACTIVOS',
                       control: CyberSegmentedControl<int>(
                         groupValue: s.arcadeLanes,
-                        children: const {
-                          3: '3 CARR.',
-                          4: '4 CARR.',
-                        },
+                        children: const {3: '3 CARR.', 4: '4 CARR.'},
                         onValueChanged: (val) => n.setArcadeLanes(val),
                         accentColor: accent,
                       ),
@@ -370,11 +450,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                       label: 'TOLERANCIA ANGULAR TRAZO',
                       control: CyberSegmentedControl<double>(
                         groupValue: s.writeTolerance,
-                        children: {
-                          15.0: '15°',
-                          25.0: '25°',
-                          35.0: '35°',
-                        },
+                        children: {15.0: '15°', 25.0: '25°', 35.0: '35°'},
                         onValueChanged: (val) => n.setWriteTolerance(val),
                         accentColor: accent,
                       ),
@@ -398,10 +474,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
     );
   }
 
-  Widget _buildSettingsRow({
-    required String label,
-    required Widget control,
-  }) {
+  Widget _buildSettingsRow({required String label, required Widget control}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -424,7 +497,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
     );
   }
 
-  double _calculateActiveGridHeight(List<FeedNode> nodes, double canvasHeight, AppLayoutMode layoutMode) {
+  double _calculateActiveGridHeight(
+    List<FeedNode> nodes,
+    double canvasHeight,
+    AppLayoutMode layoutMode,
+  ) {
     if (nodes.isEmpty) return 0.0;
     final lastNode = nodes.last;
     if (lastNode is! MecaInputNode) return 0.0;
@@ -463,7 +540,8 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
     final streak = timelineState.streak;
     final avgMs = timelineState.avgMs;
     final hitRateAcc = (timelineState.hitRate * 100).toStringAsFixed(0);
-    final telemetryStr = '[Racha: $streak | ms: ${avgMs > 0 ? avgMs : "—"} | A: $hitRateAcc%]';
+    final telemetryStr =
+        '[Racha: $streak | ms: ${avgMs > 0 ? avgMs : "—"} | A: $hitRateAcc%]';
 
     // UI elements setup
 
@@ -485,9 +563,16 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
 
               // Center Mode selector click overlay dropdown
               GestureDetector(
-                onTap: () => _showModeSelectorOverlay(context, accent),
+                onTap: () => _showModeSelectorOverlay(
+                  context,
+                  accent,
+                  activeSession.activeMode,
+                ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: 0.05),
                     border: Border.all(color: accent.withValues(alpha: 0.3)),
@@ -509,7 +594,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
 
               // ContextConfigTrigger config bottom sheet
               GestureDetector(
-                onTap: () => _showContextSettings(context, activeSession.activeMode, accent),
+                onTap: () => _showContextSettings(
+                  context,
+                  activeSession.activeMode,
+                  accent,
+                ),
                 child: Icon(Icons.more_vert, color: accent, size: 18),
               ),
             ],
@@ -526,7 +615,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
               child: LayoutBuilder(
                 builder: (ctx, constraints) {
                   final localCanvasHeight = constraints.maxHeight;
-                  final activeGridHeight = _calculateActiveGridHeight(nodes, localCanvasHeight, settings.layoutMode);
+                  final activeGridHeight = _calculateActiveGridHeight(
+                    nodes,
+                    localCanvasHeight,
+                    settings.layoutMode,
+                  );
                   final localBottomPadding = activeGridHeight > 0.0
                       ? (localCanvasHeight - activeGridHeight) / 2
                       : 24.0;
@@ -535,7 +628,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                     return Center(
                       child: Text(
                         'ESPERANDO CONEXIÓN DEL INGRESO...',
-                        style: TextStyle(color: accent.withValues(alpha: 0.3), fontSize: 11, fontFamily: 'Courier'),
+                        style: TextStyle(
+                          color: accent.withValues(alpha: 0.3),
+                          fontSize: 11,
+                          fontFamily: 'Courier',
+                        ),
                       ),
                     );
                   }
@@ -560,15 +657,30 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                       // Feed scrolling list builder
                       NotificationListener<UserScrollNotification>(
                         onNotification: (notification) {
-                          // Detect user pulling up (reverse direction offset decrease)
-                          if (notification.metrics.pixels < notification.metrics.maxScrollExtent - 20) {
-                            ref.read(timelineProvider.notifier).pauseGame();
+                          final maxScroll =
+                              notification.metrics.maxScrollExtent;
+                          final pixels = notification.metrics.pixels;
+                          // Detectar deslizamiento hacia arriba para ver el historial
+                          if (pixels < maxScroll - 20) {
+                            if (!timelineState.isPaused) {
+                              _pausedByScroll = true;
+                              ref.read(timelineProvider.notifier).pauseGame();
+                            }
+                          } else if (pixels >= maxScroll - 5) {
+                            // Detectar retorno al final
+                            if (timelineState.isPaused && _pausedByScroll) {
+                              _pausedByScroll = false;
+                              ref.read(timelineProvider.notifier).resumeGame();
+                            }
                           }
                           return true;
                         },
                         child: ListView.builder(
                           controller: _scrollController,
-                          padding: EdgeInsets.only(top: 24, bottom: localBottomPadding),
+                          padding: EdgeInsets.only(
+                            top: 24,
+                            bottom: localBottomPadding,
+                          ),
                           itemCount: nodes.length,
                           itemBuilder: (ctx, i) {
                             final node = nodes[i];
@@ -576,19 +688,33 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                             if (node is MecaInputNode) {
                               return MecaInputWidget(node: node);
                             } else if (node is KanjiProductionNode) {
-                              return KanjiProductionWidget(productionNode: node);
+                              return KanjiProductionWidget(
+                                productionNode: node,
+                              );
                             } else if (node is ConceptRecallNode) {
                               return KanjiProductionWidget(recallNode: node);
                             } else if (node is KanjiQuizNode) {
                               return KanjiQuizWidget(node: node);
                             } else if (node is LaneCollisionViewportNode) {
+                              if (node.isFrozen) {
+                                return ArcadeViewportWidget(node: node);
+                              }
                               return SizedBox(
-                                height: 320,
+                                height: (localCanvasHeight * 0.6).clamp(
+                                  300.0,
+                                  440.0,
+                                ),
                                 child: ArcadeViewportWidget(node: node),
                               );
                             } else if (node is StrokeValidationNode) {
+                              if (node.isFrozen) {
+                                return StrokeValidationWidget(node: node);
+                              }
                               return SizedBox(
-                                height: 280,
+                                height: (localCanvasHeight * 0.55).clamp(
+                                  260.0,
+                                  360.0,
+                                ),
                                 child: StrokeValidationWidget(node: node),
                               );
                             } else if (node is ExerciseReportNode) {
@@ -599,8 +725,8 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                         ),
                       ),
 
-                      // Central pause overlay actions when paused
-                      if (timelineState.isPaused)
+                      // Central pause overlay actions when paused (Oculto al inspeccionar historial)
+                      if (timelineState.isPaused && !_showSnapToBottom)
                         Positioned.fill(
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -615,7 +741,8 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                                       decoration: BoxDecoration(
                                         boxShadow: [
                                           BoxShadow(
-                                            color: CyberTheme.errorRed.withValues(alpha: 0.2),
+                                            color: CyberTheme.errorRed
+                                                .withValues(alpha: 0.2),
                                             blurRadius: 40,
                                             spreadRadius: 10,
                                           ),
@@ -638,7 +765,9 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                                       child: CyberButton(
                                         label: 'REANUDAR',
                                         onTap: () {
-                                          ref.read(timelineProvider.notifier).resumeGame();
+                                          ref
+                                              .read(timelineProvider.notifier)
+                                              .resumeGame();
                                         },
                                         accent: accent,
                                       ),
@@ -649,7 +778,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                                       child: CyberButton(
                                         label: 'AJUSTES',
                                         onTap: () {
-                                          _showContextSettings(context, activeSession.activeMode, accent);
+                                          _showContextSettings(
+                                            context,
+                                            activeSession.activeMode,
+                                            accent,
+                                          );
                                         },
                                         accent: accent,
                                       ),
@@ -672,18 +805,22 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
                           ),
                         ),
 
-                      // SnapToBottomButton
-                      if (_showSnapToBottom && !timelineState.isPaused)
+                      // SnapToBottomButton (Visible durante inspección de historial, pausado o no)
+                      if (_showSnapToBottom)
                         Positioned(
                           bottom: 16,
                           right: 16,
                           child: GestureDetector(
                             onTap: () {
+                              _pausedByScroll = false;
                               _scrollToBottom();
                               ref.read(timelineProvider.notifier).resumeGame();
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: accent,
                                 borderRadius: BorderRadius.circular(2),
@@ -715,8 +852,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
 
     // Apply violent screen shake during neon error
     if (timelineState.isNeonErrorActive) {
-      bodyColumn = bodyColumn.animate()
-          .shake(duration: 150.ms, hz: 15, offset: const Offset(10.0, 10.0));
+      bodyColumn = bodyColumn.animate().shake(
+        duration: 150.ms,
+        hz: 15,
+        offset: const Offset(10.0, 10.0),
+      );
     }
 
     return PopScope(
@@ -730,16 +870,13 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen> wit
         }
       },
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         backgroundColor: Colors.black, // Pure OLED black
         drawer: GeneralDrawer(accent: accent),
-        body: SafeArea(
-          child: bodyColumn,
-        ),
+        body: SafeArea(child: bodyColumn),
       ),
     );
   }
-
 
   Color _getAccentColor(CyberAccent c) {
     switch (c) {
@@ -781,7 +918,9 @@ class OledToggleSwitch extends StatelessWidget {
         height: 20,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: value ? activeColor.withValues(alpha: 0.2) : const Color(0xFF222222),
+          color: value
+              ? activeColor.withValues(alpha: 0.2)
+              : const Color(0xFF222222),
           border: Border.all(
             color: value ? activeColor : const Color(0xFF333333),
             width: 1.5,
@@ -849,14 +988,18 @@ class CyberSegmentedControl<T> extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   alignment: Alignment.center,
-                  color: isSelected ? accentColor.withValues(alpha: 0.15) : Colors.transparent,
+                  color: isSelected
+                      ? accentColor.withValues(alpha: 0.15)
+                      : Colors.transparent,
                   child: Text(
                     entry.value,
                     style: TextStyle(
                       color: isSelected ? accentColor : Colors.white60,
                       fontFamily: 'Courier',
                       fontSize: 8.5,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ),

@@ -34,24 +34,21 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
   }
 
   Color _accentColor(SettingsState s) => switch (s.accentColor) {
-        CyberAccent.green => CyberTheme.defaultAccent,
-        CyberAccent.red => CyberTheme.errorRed,
-        CyberAccent.orange => Colors.orange,
-        CyberAccent.blue => Colors.cyanAccent,
-        CyberAccent.purple => Colors.purpleAccent,
-        CyberAccent.white => Colors.white,
-      };
+    CyberAccent.green => CyberTheme.defaultAccent,
+    CyberAccent.red => CyberTheme.errorRed,
+    CyberAccent.orange => Colors.orange,
+    CyberAccent.blue => Colors.cyanAccent,
+    CyberAccent.purple => Colors.purpleAccent,
+    CyberAccent.white => Colors.white,
+  };
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String>(
-      gameProvider.select((s) => s.inputText),
-      (_, next) {
-        if (next.isEmpty && input.text.isNotEmpty) {
-          input.clear();
-        }
-      },
-    );
+    ref.listen<String>(gameProvider.select((s) => s.inputText), (_, next) {
+      if (next.isEmpty && input.text.isNotEmpty) {
+        input.clear();
+      }
+    });
 
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
@@ -88,16 +85,26 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                         if (state.isLoading) {
                           return Center(
                             child: SizedBox(
-                              width: 24, height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: accent,
+                              ),
                             ),
                           );
                         }
 
                         if (state.currentSequence.isEmpty) {
                           return Center(
-                            child: Text('SIN DATOS',
-                              style: TextStyle(color: accent.withValues(alpha: 0.4), fontFamily: 'Courier', fontSize: 12, letterSpacing: 3),
+                            child: Text(
+                              'SIN DATOS',
+                              style: TextStyle(
+                                color: accent.withValues(alpha: 0.4),
+                                fontFamily: 'Courier',
+                                fontSize: 12,
+                                letterSpacing: 3,
+                              ),
                             ),
                           );
                         }
@@ -108,35 +115,58 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: state.currentSequence.asMap().entries.map((e) {
-                                final isActive = e.key == state.currentSequenceIndex;
-                                final char = e.value.character;
-                                final opacity = (state.engineState != EngineState.playing) ? 0.2 : (isActive ? 1.0 : 0.25);
+                              children: state.currentSequence
+                                  .asMap()
+                                  .entries
+                                  .map((e) {
+                                    final isActive =
+                                        e.key == state.currentSequenceIndex;
+                                    final char = e.value.character;
+                                    final opacity =
+                                        (state.engineState !=
+                                            EngineState.playing)
+                                        ? 0.2
+                                        : (isActive ? 1.0 : 0.25);
 
-                                Widget charWidget = FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    char,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: opacity),
-                                      fontSize: fontSize,
-                                      fontWeight: FontWeight.w200,
-                                      height: 1.0,
-                                    ),
-                                  ),
-                                );
+                                    Widget charWidget = FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        char,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: opacity,
+                                          ),
+                                          fontSize: fontSize,
+                                          fontWeight: FontWeight.w200,
+                                          height: 1.0,
+                                        ),
+                                      ),
+                                    );
 
-                                if (isActive && state.inputState == InputState.error && state.engineState == EngineState.playing) {
-                                  charWidget = charWidget
-                                      .animate(target: 1)
-                                      .shakeX(duration: const Duration(milliseconds: 180));
-                                }
+                                    if (isActive &&
+                                        state.inputState == InputState.error &&
+                                        state.engineState ==
+                                            EngineState.playing) {
+                                      charWidget = charWidget
+                                          .animate(target: 1)
+                                          .shakeX(
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                          );
+                                    }
 
-                                return Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: state.currentSequence.length > 1 ? 8.0 : 0.0),
-                                  child: charWidget,
-                                );
-                              }).toList(),
+                                    return Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal:
+                                            state.currentSequence.length > 1
+                                            ? 8.0
+                                            : 0.0,
+                                      ),
+                                      child: charWidget,
+                                    );
+                                  })
+                                  .toList(),
                             ),
                           ),
                         );
@@ -146,7 +176,9 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                     // ── OVERLAY DE PAUSA / BIENVENIDA ────────────────────────
                     if (state.engineState != EngineState.playing)
                       Positioned(
-                        bottom: 0, left: 0, right: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
                         child: Container(
                           padding: const EdgeInsets.only(bottom: 24),
                           color: Colors.transparent,
@@ -154,7 +186,9 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               _MenuAction(
-                                label: state.engineState == EngineState.welcome ? '[ ENTRAR AL SISTEMA ]' : '[ REANUDAR ]',
+                                label: state.engineState == EngineState.welcome
+                                    ? '[ ENTRAR AL SISTEMA ]'
+                                    : '[ REANUDAR ]',
                                 accent: accent,
                                 onTap: notifier.resume,
                               ),
@@ -236,18 +270,19 @@ class _GameHeader extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                _Metric('${state.streak}', Icons.local_fire_department,
-                    accent),
+                _Metric('${state.streak}', Icons.local_fire_department, accent),
                 const SizedBox(width: 10),
                 _Metric(
-                    state.avgMs > 0 ? '${state.avgMs}ms' : '—',
-                    Icons.speed,
-                    accent),
+                  state.avgMs > 0 ? '${state.avgMs}ms' : '—',
+                  Icons.speed,
+                  accent,
+                ),
                 const SizedBox(width: 10),
                 _Metric(
-                    '${(state.hitRate * 100).toStringAsFixed(0)}%',
-                    Icons.track_changes,
-                    accent),
+                  '${(state.hitRate * 100).toStringAsFixed(0)}%',
+                  Icons.track_changes,
+                  accent,
+                ),
               ],
             ),
           ),
@@ -264,7 +299,10 @@ class _GameHeader extends StatelessWidget {
   }
 
   void _cycleMode(
-      BuildContext context, GameState state, GameNotifier notifier) {
+    BuildContext context,
+    GameState state,
+    GameNotifier notifier,
+  ) {
     final next = switch (state.mode) {
       GameMode.hiragana => GameMode.katakana,
       GameMode.katakana => GameMode.mixed,
@@ -302,8 +340,11 @@ class _Metric extends StatelessWidget {
 }
 
 class _ModeChip extends StatelessWidget {
-  const _ModeChip(
-      {required this.label, required this.accent, required this.onTap});
+  const _ModeChip({
+    required this.label,
+    required this.accent,
+    required this.onTap,
+  });
   final String label;
   final Color accent;
   final VoidCallback onTap;
@@ -350,11 +391,11 @@ class _InputField extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   Color get _lineColor => switch (inputState) {
-        InputState.neutral => Colors.white.withValues(alpha: 0.15),
-        InputState.progress => accent.withValues(alpha: 0.6),
-        InputState.error => CyberTheme.errorRed,
-        InputState.success => accent,
-      };
+    InputState.neutral => Colors.white.withValues(alpha: 0.15),
+    InputState.progress => accent.withValues(alpha: 0.6),
+    InputState.error => CyberTheme.errorRed,
+    InputState.success => accent,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -399,7 +440,11 @@ class _InputField extends StatelessWidget {
 }
 
 class _MenuAction extends StatelessWidget {
-  const _MenuAction({required this.label, required this.accent, required this.onTap});
+  const _MenuAction({
+    required this.label,
+    required this.accent,
+    required this.onTap,
+  });
   final String label;
   final Color accent;
   final VoidCallback onTap;

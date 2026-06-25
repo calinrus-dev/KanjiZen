@@ -906,7 +906,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     );
   }
 
-  void _handleTimeExpired() {
+  Future<void> _handleTimeExpired() async {
     final activeSession = state.activeSession;
     if (activeSession.nodes.isEmpty) return;
     final lastNode = activeSession.nodes.last;
@@ -914,26 +914,26 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     if (lastNode is MecaInputNode && !lastNode.isFrozen) {
       // Penalty and advance
       final char = lastNode.targetCharacters[lastNode.currentIndex];
-      _penalizeCharacter(char.character, !char.isKana);
-      _advanceMecaError(lastNode);
+      await _penalizeCharacter(char.character, !char.isKana);
+      await _advanceMecaError(lastNode);
     } else if ((lastNode is KanjiProductionNode ||
             lastNode is ConceptRecallNode) &&
         !lastNode.isFrozen) {
       final character = lastNode is KanjiProductionNode
           ? lastNode.kanji.character
           : (lastNode as ConceptRecallNode).kanji.character;
-      _penalizeCharacter(character, true);
+      await _penalizeCharacter(character, true);
       _recordTelemetry(false, 3000);
-      generateNextNode();
+      await generateNextNode();
     } else if (lastNode is KanjiQuizNode && !lastNode.isFrozen) {
-      _penalizeCharacter(lastNode.kanji.character, true);
+      await _penalizeCharacter(lastNode.kanji.character, true);
       _recordTelemetry(false, 3000);
-      generateNextNode();
+      await generateNextNode();
     }
   }
 
   // Sincronizar input de TerminalMode
-  void onTerminalInputChanged(String text) {
+  Future<void> onTerminalInputChanged(String text) async {
     if (state.isPaused || state.isNeonErrorActive) {
       return; // Prevent input if frozen
     }
@@ -952,7 +952,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
       // Acerto absoluto
       if (cleanInput == targetRomaji || cleanInput == targetJapanese) {
-        _handleMecaStepSuccess(lastNode, targetChar);
+        await _handleMecaStepSuccess(lastNode, targetChar);
         return;
       }
 
@@ -968,14 +968,14 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       triggerNeonError();
       _handleHardcoreFailure();
       _updateMecaInput(lastNode, '', InputState.error);
-      _penalizeCharacter(targetChar.character, !targetChar.isKana);
+      await _penalizeCharacter(targetChar.character, !targetChar.isKana);
       _recordTelemetry(
         false,
         DateTime.now().millisecondsSinceEpoch - _questionStartMs!,
       );
 
       // Clean error status after 150ms
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 150), () async {
         if (!mounted) return;
         _updateMecaInput(lastNode, '', InputState.neutral);
       });
@@ -989,7 +989,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
       if (isMatch) {
         _updateKanjiProductionInput(lastNode, '', InputState.success);
-        _handleKanjiSuccess(k);
+        await _handleKanjiSuccess(k);
         return;
       }
       if (isPrefix) {
@@ -1001,17 +1001,17 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       triggerNeonError();
       _handleHardcoreFailure();
       _updateKanjiProductionInput(lastNode, '', InputState.error);
-      _repo.updateKanjiSrs(
+      await _repo.updateKanjiSrs(
         k.character,
         (k.srsScore - 0.25).clamp(0.0, 10.0),
         k.consecutiveFails + 1,
       );
       _recordTelemetry(false, 1000);
 
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 150), () async {
         if (!mounted) return;
         _updateKanjiProductionInput(lastNode, '', InputState.neutral);
-        generateNextNode();
+        await generateNextNode();
       });
     } else if (lastNode is ConceptRecallNode && !lastNode.isFrozen) {
       final k = lastNode.kanji;
@@ -1026,7 +1026,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
       if (isMatch) {
         _updateConceptRecallInput(lastNode, '', InputState.success);
-        _handleKanjiSuccess(k);
+        await _handleKanjiSuccess(k);
         return;
       }
       if (isPrefix) {
@@ -1038,17 +1038,17 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       triggerNeonError();
       _handleHardcoreFailure();
       _updateConceptRecallInput(lastNode, '', InputState.error);
-      _repo.updateKanjiSrs(
+      await _repo.updateKanjiSrs(
         k.character,
         (k.srsScore - 0.5).clamp(0.0, 10.0),
         k.consecutiveFails + 1,
       );
       _recordTelemetry(false, 1000);
 
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 150), () async {
         if (!mounted) return;
         _updateConceptRecallInput(lastNode, '', InputState.neutral);
-        generateNextNode();
+        await generateNextNode();
       });
     }
   }
@@ -1100,7 +1100,10 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     return false;
   }
 
-  void _handleMecaStepSuccess(MecaInputNode node, GameCharacter targetChar) {
+  Future<void> _handleMecaStepSuccess(
+    MecaInputNode node,
+    GameCharacter targetChar,
+  ) async {
     if (ref.read(settingsProvider).enableAudio) {
       AudioFeedbackService.instance.playReading(targetChar.character);
     }
@@ -1109,7 +1112,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     final responseMs = _questionStartMs != null ? now - _questionStartMs! : 500;
 
     // Update character stats
-    _updateCharacterProgress(targetChar, true, responseMs);
+    await _updateCharacterProgress(targetChar, true, responseMs);
     _recordTelemetry(true, responseMs);
 
     final nextIndex = node.currentIndex + 1;
@@ -1137,7 +1140,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         );
       } else {
         // MECA es infinito — continúa sin mostrar pantalla de completado.
-        generateNextNode();
+        await generateNextNode();
       }
     } else {
       // Move to next char in current node
@@ -1160,7 +1163,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     }
   }
 
-  void _advanceMecaError(MecaInputNode node) {
+  Future<void> _advanceMecaError(MecaInputNode node) async {
     final nextIndex = node.currentIndex + 1;
 
     final updatedNode = MecaInputNode(
@@ -1201,7 +1204,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         );
       } else {
         // MECA es infinito — continúa sin mostrar pantalla de completado.
-        generateNextNode();
+        await generateNextNode();
       }
     } else {
       _updateNodeInTimeline(updatedNode);
@@ -1259,7 +1262,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     _updateNodeInTimeline(updated);
   }
 
-  void _handleKanjiSuccess(KanjiModel k) {
+  Future<void> _handleKanjiSuccess(KanjiModel k) async {
     if (ref.read(settingsProvider).enableAudio) {
       AudioFeedbackService.instance.playReading(k.character);
     }
@@ -1269,15 +1272,19 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         ? now - _questionStartMs!
         : 1000;
 
-    _repo.updateKanjiSrs(k.character, (k.srsScore + 0.5).clamp(0.0, 10.0), 0);
-    _updateCharacterProgress(GameCharacter(kanji: k), true, responseMs);
+    await _repo.updateKanjiSrs(
+      k.character,
+      (k.srsScore + 0.5).clamp(0.0, 10.0),
+      0,
+    );
+    await _updateCharacterProgress(GameCharacter(kanji: k), true, responseMs);
     _recordTelemetry(true, responseMs);
 
-    generateNextNode();
+    await generateNextNode();
   }
 
   // Quiz Option Selected
-  void onQuizOptionSelected(String opt) {
+  Future<void> onQuizOptionSelected(String opt) async {
     if (state.isPaused) return;
     final activeSession = state.activeSession;
     if (activeSession.nodes.isEmpty) return;
@@ -1294,12 +1301,12 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         if (ref.read(settingsProvider).enableAudio) {
           AudioFeedbackService.instance.playReading(lastNode.kanji.character);
         }
-        _repo.updateKanjiSrs(
+        await _repo.updateKanjiSrs(
           lastNode.kanji.character,
           (lastNode.kanji.srsScore + 0.5).clamp(0.0, 10.0),
           0,
         );
-        _updateCharacterProgress(
+        await _updateCharacterProgress(
           GameCharacter(kanji: lastNode.kanji),
           true,
           responseMs,
@@ -1308,12 +1315,12 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       } else {
         triggerNeonError();
         _handleHardcoreFailure();
-        _repo.updateKanjiSrs(
+        await _repo.updateKanjiSrs(
           lastNode.kanji.character,
           (lastNode.kanji.srsScore - 0.25).clamp(0.0, 10.0),
           lastNode.kanji.consecutiveFails + 1,
         );
-        _updateCharacterProgress(
+        await _updateCharacterProgress(
           GameCharacter(kanji: lastNode.kanji),
           false,
           responseMs,
@@ -1321,7 +1328,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         _recordTelemetry(false, responseMs);
       }
 
-      generateNextNode();
+      await generateNextNode();
     }
   }
 
@@ -1478,7 +1485,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
   }
 
   // Write Canvas Drawing Stroke logic
-  void onStrokeCompleted(List<Offset> points) {
+  Future<void> onStrokeCompleted(List<Offset> points) async {
     if (state.isPaused) return;
     final activeSession = state.activeSession;
     if (activeSession.nodes.isEmpty) return;
@@ -1531,12 +1538,12 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
             if (ref.read(settingsProvider).enableAudio) {
               AudioFeedbackService.instance.playReading(k.character);
             }
-            _repo.updateKanjiSrs(
+            await _repo.updateKanjiSrs(
               k.character,
               (k.srsScore + 0.5).clamp(0.0, 10.0),
               0,
             );
-            _updateCharacterProgress(GameCharacter(kanji: k), true, 1000);
+            await _updateCharacterProgress(GameCharacter(kanji: k), true, 1000);
             _recordTelemetry(true, 1000);
 
             _triggerReportNode('CALIGRAFÍA EXITOSA', k.svgPaths.length, 0);
@@ -1625,7 +1632,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     );
   }
 
-  void _penalizeCharacter(String character, bool isKanji) async {
+  Future<void> _penalizeCharacter(String character, bool isKanji) async {
     HapticFeedback.vibrate();
     if (isKanji) {
       // We read from repository
@@ -1654,11 +1661,11 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     }
   }
 
-  void _updateCharacterProgress(
+  Future<void> _updateCharacterProgress(
     GameCharacter char,
     bool success,
     int responseMs,
-  ) {
+  ) async {
     final encoded = TierCalculator.encodeAttempt(
       isCorrect: success,
       isDoubleStroke: false,
@@ -1669,14 +1676,14 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     final stats = TierCalculator.calculateStats(blob);
 
     if (char.isKana) {
-      _repo.updateKanaProgress(
+      await _repo.updateKanaProgress(
         character: char.character,
         historyBlob: blob,
         hitRate: stats.hitRate,
         averageMs: stats.avgMs,
       );
     } else {
-      _repo.updateKanjiProgress(
+      await _repo.updateKanjiProgress(
         character: char.character,
         historyBlob: blob,
         hitRate: stats.hitRate,

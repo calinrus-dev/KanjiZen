@@ -31,23 +31,41 @@ class ArcadeViewportWidget extends ConsumerWidget {
               children: [
                 const Text(
                   'ENGINE: ARCADE 1.0',
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'Courier'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                  ),
                 ),
                 Text(
                   'COMPLETADO',
-                  style: TextStyle(color: accent, fontSize: 10, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'PUNTUACIÓN OBTENIDA: ${node.score} PTS',
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontFamily: 'Courier',
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'VIDAS RESTANTES: ${node.lives} | DECK DE KANJIS: ${node.deck.map((k) => k.character).join(", ")}',
-              style: TextStyle(color: accent.withValues(alpha: 0.7), fontSize: 11, fontFamily: 'Courier'),
+              style: TextStyle(
+                color: accent.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontFamily: 'Courier',
+              ),
             ),
           ],
         ),
@@ -65,13 +83,20 @@ class ArcadeViewportWidget extends ConsumerWidget {
             children: [
               Text(
                 'SCORE: ${node.score}',
-                style: TextStyle(color: accent, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: accent,
+                  fontFamily: 'Courier',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Row(
                 children: List.generate(5, (i) {
                   return Icon(
                     Icons.favorite,
-                    color: i < node.lives ? CyberTheme.errorRed : Colors.white10,
+                    color: i < node.lives
+                        ? CyberTheme.errorRed
+                        : Colors.white10,
                     size: 14,
                   );
                 }),
@@ -124,10 +149,15 @@ class ArcadeViewportWidget extends ConsumerWidget {
                           height: 50,
                           alignment: Alignment.center,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: CyberTheme.bgObsidian,
-                              border: Border.all(color: accent.withValues(alpha: 0.2)),
+                              border: Border.all(
+                                color: accent.withValues(alpha: 0.2),
+                              ),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -152,14 +182,18 @@ class ArcadeViewportWidget extends ConsumerWidget {
                         return DragTarget<String>(
                           onWillAcceptWithDetails: (details) => true,
                           onAcceptWithDetails: (details) {
-                            ref.read(timelineProvider.notifier).onArcadeFlick(details.data, laneIdx);
+                            ref
+                                .read(timelineProvider.notifier)
+                                .onArcadeFlick(details.data, laneIdx);
                           },
                           builder: (context, candidateData, rejectedData) {
                             final isHovered = candidateData.isNotEmpty;
                             return Container(
                               width: laneWidth,
                               height: height,
-                              color: isHovered ? accent.withValues(alpha: 0.05) : Colors.transparent,
+                              color: isHovered
+                                  ? accent.withValues(alpha: 0.05)
+                                  : Colors.transparent,
                             );
                           },
                         );

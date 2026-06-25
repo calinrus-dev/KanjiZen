@@ -76,10 +76,7 @@ class SrsEngine extends _$SrsEngine {
       currentPool = _weightedShuffle(currentPool);
       nextIdx = 0;
     }
-    state = state.copyWith(
-      pool: currentPool,
-      currentIndex: nextIdx,
-    );
+    state = state.copyWith(pool: currentPool, currentIndex: nextIdx);
   }
 
   /// Registra un acierto y actualiza el modelo del carácter en el pool.

@@ -261,6 +261,16 @@ class ExerciseReportNode extends FeedNode {
   ExerciseReportNode freeze() => this;
 }
 
+/// Nodo placeholder para el futuro modo Chat/Tutor de IA.
+/// Permite que la UI del input engine mute al Estado B aunque el backend
+/// LLM todavía no esté integrado.
+class ChatNode extends FeedNode {
+  ChatNode({required super.id, required super.timestamp, super.isFrozen});
+
+  @override
+  ChatNode freeze() => ChatNode(id: id, timestamp: timestamp, isFrozen: true);
+}
+
 // ─── ESTADO E HISTORIAL DE SESIONES ──────────────────────────────────────────
 
 class SessionHistoryItem {

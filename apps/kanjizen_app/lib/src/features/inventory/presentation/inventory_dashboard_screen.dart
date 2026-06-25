@@ -405,15 +405,24 @@ class _InventoryDashboardScreenState
       context: context,
       backgroundColor: const Color(0xFF0D0E15),
       shape: Border(top: BorderSide(color: accent, width: 1.5)),
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (ctx, setOverlayState) {
             return Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              padding: EdgeInsets.only(
+                top: 24,
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                    MediaQuery.of(ctx).padding.bottom +
+                    24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                   Text(
                     '// FILTROS AVANZADOS (MULTI-AND)',
                     style: TextStyle(
@@ -555,7 +564,8 @@ class _InventoryDashboardScreenState
                   ),
                 ],
               ),
-            );
+            ),
+          );
           },
         );
       },

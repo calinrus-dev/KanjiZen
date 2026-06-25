@@ -1,5 +1,6 @@
 name: kanjizen_app
 description: Capa de presentación de KanjiZen. Widgets, Screens, GoRouter. Orquesta todos los paquetes del workspace.
+version: 1.0.0+1
 
 publish_to: none
 
@@ -8,6 +9,7 @@ environment:
   flutter: ">=3.32.5"
 
 dependencies:
+  cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
   flutter_animate: ^4.5.2

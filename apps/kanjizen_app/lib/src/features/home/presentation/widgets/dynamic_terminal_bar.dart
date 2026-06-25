@@ -4,17 +4,8 @@ import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kz_ui_components/kz_ui_components.dart';
 import 'package:kanjizen_app/src/providers/timeline_provider.dart';
-import 'virtual_flick_keyboard.dart';
-import 'chat_console_input.dart';
-
-/// Stub para nodo de chat hasta que el backend LLM esté integrado.
-/// Permite que el [DynamicTerminalBar] mute al Estado B (Chat UI).
-class ChatNode extends FeedNode {
-  ChatNode({required super.id, required super.timestamp, super.isFrozen});
-
-  @override
-  ChatNode freeze() => ChatNode(id: id, timestamp: timestamp, isFrozen: true);
-}
+import 'package:kanjizen_app/src/features/home/presentation/widgets/chat_console_input.dart';
+import 'package:kanjizen_app/src/features/home/presentation/widgets/virtual_flick_keyboard.dart';
 
 class DynamicTerminalBar extends ConsumerStatefulWidget {
   const DynamicTerminalBar({super.key});
@@ -151,7 +142,7 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
                   ),
                   SizedBox(
                     height: constraints.maxHeight.isFinite
-                        ? constraints.maxHeight * 0.75
+                        ? (constraints.maxHeight * 0.75).clamp(160.0, 260.0)
                         : 200,
                     child: VirtualFlickKeyboard(
                       onCharacterSelected: (char) {
@@ -247,63 +238,71 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
           builder: (context, constraints) {
             final crossCount =
                 (constraints.maxWidth / 140).clamp(2, 4).toInt();
-            final aspect = (constraints.maxWidth / crossCount) / 60;
+            final rows = (lastNode.options.length / crossCount).ceil();
+            const cellHeight = 56.0;
+            const spacing = 12.0;
+            final gridHeight = (rows * cellHeight + (rows - 1) * spacing)
+                .clamp(cellHeight, 220.0);
+            final childAspectRatio =
+                (constraints.maxWidth / crossCount) / cellHeight;
 
             return AbsorbPointer(
               absorbing: _quizLocked,
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossCount,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: aspect.clamp(1.0, 4.0),
+              child: SizedBox(
+                height: gridHeight,
+                child: GridView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossCount,
+                    crossAxisSpacing: spacing,
+                    mainAxisSpacing: spacing,
+                    childAspectRatio: childAspectRatio.clamp(1.0, 4.0),
+                  ),
+                  itemCount: lastNode.options.length,
+                  itemBuilder: (context, i) {
+                    final opt = lastNode.options[i];
+                    return InkWell(
+                      onTap: () {
+                        setState(() => _quizLocked = true);
+                        ref
+                            .read(timelineProvider.notifier)
+                            .onQuizOptionSelected(opt);
+                      },
+                      borderRadius: BorderRadius.circular(6),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.4),
+                            width: 1.2,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                          color: accent.withValues(alpha: 0.04),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accent.withValues(alpha: 0.08),
+                              blurRadius: 6,
+                              spreadRadius: 0.5,
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            opt,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontFamily: 'Courier',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                itemCount: lastNode.options.length,
-                itemBuilder: (context, i) {
-                  final opt = lastNode.options[i];
-                  return InkWell(
-                    onTap: () {
-                      setState(() => _quizLocked = true);
-                      ref
-                          .read(timelineProvider.notifier)
-                          .onQuizOptionSelected(opt);
-                    },
-                    borderRadius: BorderRadius.circular(6),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: accent.withValues(alpha: 0.4),
-                          width: 1.2,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                        color: accent.withValues(alpha: 0.04),
-                        boxShadow: [
-                          BoxShadow(
-                            color: accent.withValues(alpha: 0.08),
-                            blurRadius: 6,
-                            spreadRadius: 0.5,
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          opt,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontFamily: 'Courier',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
               ),
             );
           },

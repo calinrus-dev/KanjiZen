@@ -29,7 +29,9 @@ class MecaContextSettings extends ConsumerWidget {
         top: 24,
         left: 24,
         right: 24,
-        bottom: MediaQuery.of(context).padding.bottom + 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom +
+            24,
       ),
       child: SingleChildScrollView(
         child: Column(

@@ -120,9 +120,10 @@ class _CharacterDetailSheetState extends State<CharacterDetailSheet>
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
         border: Border(top: BorderSide(color: Colors.white12)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,7 +343,8 @@ class _CharacterDetailSheetState extends State<CharacterDetailSheet>
           const SizedBox(height: 16),
 
           // Telemetry Chart (CustomPaint for high performance)
-          Expanded(
+          SizedBox(
+            height: 220,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -361,7 +363,8 @@ class _CharacterDetailSheetState extends State<CharacterDetailSheet>
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMetaLine(

@@ -31,12 +31,15 @@ class MecaPoolSettings extends ConsumerWidget {
         top: 24,
         left: 24,
         right: 24,
-        bottom: MediaQuery.of(context).padding.bottom + 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom +
+            24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -191,7 +194,8 @@ class MecaPoolSettings extends ConsumerWidget {
             ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Color _getAccentColor(CyberAccent c) {

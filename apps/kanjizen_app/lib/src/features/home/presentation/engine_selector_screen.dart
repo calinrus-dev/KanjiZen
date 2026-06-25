@@ -292,7 +292,9 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                 top: 24,
                 left: 24,
                 right: 24,
-                bottom: MediaQuery.of(ctx).padding.bottom + 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                    MediaQuery.of(ctx).padding.bottom +
+                    24,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -749,17 +751,16 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           boxShadow: [
                                             BoxShadow(
-                                              color: CyberTheme.errorRed
-                                                  .withValues(alpha: 0.2),
+                                              color: Color(0x33E53935),
                                               blurRadius: 40,
                                               spreadRadius: 10,
                                             ),
                                           ],
                                         ),
-                                        child: FittedBox(
+                                        child: const FittedBox(
                                           child: Text(
                                             'SYSTEM PAUSED',
                                             style: TextStyle(

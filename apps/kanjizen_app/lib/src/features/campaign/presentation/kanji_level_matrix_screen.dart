@@ -801,14 +801,21 @@ class _AcquisitionEngineState extends ConsumerState<_AcquisitionEngine>
 
             // Lienzo central
             Expanded(
-              child: GestureDetector(
-                onTap: isExposure ? _advanceExposure : null,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: GestureDetector(
+                        onTap: isExposure ? _advanceExposure : null,
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
                         // Kanji SVG animado
                         GestureDetector(
                           onTap: () {
@@ -920,7 +927,10 @@ class _AcquisitionEngineState extends ConsumerState<_AcquisitionEngine>
                   ),
                 ),
               ),
-            ),
+            );
+          },
+        ),
+      ),
 
             // Input de producción
             if (!isExposure)

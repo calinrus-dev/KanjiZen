@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:kz_core/kz_core.dart';
@@ -27,90 +29,120 @@ class KanaDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = accentColor ?? CyberTheme.defaultAccent;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // ─── Carácter principal ───────────────────────────────────────────
-        Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-                color: accent.withValues(alpha: 0.04),
-              ),
-              child: Stack(
-                children: [
-                  // Corner brackets SVG-style
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: _Bracket(color: accent, flip: false),
-                  ),
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: _Bracket(color: accent, flip: true),
-                  ),
-                  Positioned(
-                    bottom: 6,
-                    left: 6,
-                    child: _Bracket(color: accent, flip: false, bottom: true),
-                  ),
-                  Positioned(
-                    bottom: 6,
-                    right: 6,
-                    child: _Bracket(color: accent, flip: true, bottom: true),
-                  ),
-                  // Carácter (Text fallback o VectorPainter)
-                  Center(
-                    child: (svgPaths != null && svgPaths!.isNotEmpty)
-                        ? CustomPaint(
-                            size: const Size(120, 120),
-                            painter: KanjiVectorPainter(
-                              svgPaths: svgPaths!,
-                              accentColor: accent,
-                              progress: 1.0, // Modo estático
-                            ),
-                          )
-                        : Text(
-                            character,
-                            style: TextStyle(
-                              fontSize: 120,
-                              color: CyberTheme.textNeutral,
-                              fontWeight: FontWeight.w100,
-                              shadows: [
-                                Shadow(
-                                  color: accent.withValues(alpha: 0.4),
-                                  blurRadius: 20,
-                                ),
-                                Shadow(
-                                  color: accent.withValues(alpha: 0.2),
-                                  blurRadius: 40,
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            )
-            .animate()
-            .fadeIn(duration: 200.ms)
-            .scale(
-              begin: const Offset(0.92, 0.92),
-              duration: 200.ms,
-              curve: Curves.easeOut,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth.isFinite ? constraints.maxWidth : 200.0;
+        final maxH =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : 200.0;
+        final boxSize = math.min(maxW, maxH).clamp(80.0, 240.0);
+        final charSize = boxSize * 0.6;
+        final bracketSize = boxSize * 0.05;
+        final inset = boxSize * 0.03;
 
-        // ─── Tier badge ───────────────────────────────────────────────────
-        if (showTier) ...[
-          const SizedBox(height: 12),
-          TierBadge(tier: tier, size: 28),
-        ],
-      ],
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ─── Carácter principal ───────────────────────────────────────────
+            Container(
+                  width: boxSize,
+                  height: boxSize,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                    color: accent.withValues(alpha: 0.04),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Corner brackets SVG-style
+                      Positioned(
+                        top: inset,
+                        left: inset,
+                        child: _Bracket(
+                          color: accent,
+                          flip: false,
+                          size: bracketSize,
+                        ),
+                      ),
+                      Positioned(
+                        top: inset,
+                        right: inset,
+                        child: _Bracket(
+                          color: accent,
+                          flip: true,
+                          size: bracketSize,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: inset,
+                        left: inset,
+                        child: _Bracket(
+                          color: accent,
+                          flip: false,
+                          bottom: true,
+                          size: bracketSize,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: inset,
+                        right: inset,
+                        child: _Bracket(
+                          color: accent,
+                          flip: true,
+                          bottom: true,
+                          size: bracketSize,
+                        ),
+                      ),
+                      // Carácter (Text fallback o VectorPainter)
+                      Center(
+                        child: (svgPaths != null && svgPaths!.isNotEmpty)
+                            ? CustomPaint(
+                                size: Size(charSize, charSize),
+                                painter: KanjiVectorPainter(
+                                  svgPaths: svgPaths!,
+                                  accentColor: accent,
+                                  progress: 1.0, // Modo estático
+                                ),
+                              )
+                            : Text(
+                                character,
+                                style: TextStyle(
+                                  fontSize: charSize,
+                                  color: CyberTheme.textNeutral,
+                                  fontWeight: FontWeight.w100,
+                                  shadows: [
+                                    Shadow(
+                                      color: accent.withValues(alpha: 0.4),
+                                      blurRadius: boxSize * 0.1,
+                                    ),
+                                    Shadow(
+                                      color: accent.withValues(alpha: 0.2),
+                                      blurRadius: boxSize * 0.2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                )
+                .animate()
+                .fadeIn(duration: 200.ms)
+                .scale(
+                  begin: const Offset(0.92, 0.92),
+                  duration: 200.ms,
+                  curve: Curves.easeOut,
+                ),
+
+            // ─── Tier badge ───────────────────────────────────────────────────
+            if (showTier) ...[
+              SizedBox(height: boxSize * 0.06),
+              TierBadge(tier: tier, size: boxSize * 0.14),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -120,15 +152,17 @@ class _Bracket extends StatelessWidget {
     required this.color,
     required this.flip,
     this.bottom = false,
+    required this.size,
   });
   final Color color;
   final bool flip;
   final bool bottom;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: const Size(10, 10),
+      size: Size(size, size),
       painter: _BracketPainter(color: color, flipH: flip, flipV: bottom),
     );
   }

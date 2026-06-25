@@ -44,120 +44,206 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
     final displayStars = isHardcore ? level.redStars : level.stars;
     final starColor = isHardcore ? CyberTheme.errorRed : accent;
 
+    int selectedVolume = settings.campaignSessionVolume;
+    int selectedDuration = settings.campaignSessionDuration;
+
     showDialog<void>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF05060A),
-          shape: Border.all(color: accent.withValues(alpha: 0.3)),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                level.isBoss
-                    ? 'ALERTA: ENFRENTAMIENTO JEFE'
-                    : 'NIVEL ${level.levelId}',
-                style: TextStyle(
-                  color: level.isBoss ? CyberTheme.errorRed : accent,
-                  fontFamily: 'Courier',
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
-              if (level.isBoss)
-                const Icon(Icons.gavel, color: CyberTheme.errorRed, size: 16),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'MÉTODO: ${level.mode.toUpperCase()}',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontFamily: 'Courier',
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'CARACTERES OBJETIVOS A EVALUAR:',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontFamily: 'Courier',
-                  fontSize: 9,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                level.targetCharacters.join('   '),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontFamily: 'Courier',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF05060A),
+              shape: Border.all(color: accent.withValues(alpha: 0.3)),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Text(
+                    level.isBoss
+                        ? 'ALERTA: ENFRENTAMIENTO JEFE'
+                        : 'NIVEL ${level.levelId}',
+                    style: TextStyle(
+                      color: level.isBoss ? CyberTheme.errorRed : accent,
+                      fontFamily: 'Courier',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  if (level.isBoss)
+                    const Icon(Icons.gavel, color: CyberTheme.errorRed, size: 16),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'MÉTODO: ${level.mode.toUpperCase()}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   const Text(
-                    'PUNTUACIÓN MÁXIMA: ',
+                    'CARACTERES OBJETIVOS A EVALUAR:',
                     style: TextStyle(
                       color: Colors.white38,
                       fontFamily: 'Courier',
                       fontSize: 9,
+                      letterSpacing: 1,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    level.targetCharacters.join('   '),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: 'Courier',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'VOLUMEN DE DECK:',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontFamily: 'Courier',
+                      fontSize: 9,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Row(
-                    children: List.generate(3, (starIdx) {
-                      return Icon(
-                        starIdx < displayStars ? Icons.star : Icons.star_border,
-                        color: starIdx < displayStars
-                            ? starColor
-                            : starColor.withValues(alpha: 0.2),
-                        size: 12,
+                    children: [15, 30, 50].map((v) {
+                      final active = selectedVolume == v;
+                      return GestureDetector(
+                        onTap: () => setState(() => selectedVolume = v),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: active ? accent : Colors.white10),
+                            color: active ? accent.withValues(alpha: 0.1) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Text(
+                            '$v ÍTEMS',
+                            style: TextStyle(
+                              color: active ? accent : Colors.white30,
+                              fontFamily: 'Courier',
+                              fontSize: 9,
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
                       );
-                    }),
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'LÍMITE DE TIEMPO:',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontFamily: 'Courier',
+                      fontSize: 9,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      (0, 'SIN LÍMITE'),
+                      (60, '1 MIN'),
+                      (180, '3 MIN'),
+                      (300, '5 MIN'),
+                    ].map((pair) {
+                      final active = selectedDuration == pair.$1;
+                      return GestureDetector(
+                        onTap: () => setState(() => selectedDuration = pair.$1),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: active ? accent : Colors.white10),
+                            color: active && pair.$1 > 0 ? accent.withValues(alpha: 0.1) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Text(
+                            pair.$2,
+                            style: TextStyle(
+                              color: active ? accent : Colors.white30,
+                              fontFamily: 'Courier',
+                              fontSize: 9,
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      const Text(
+                        'PUNTUACIÓN MÁXIMA: ',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontFamily: 'Courier',
+                          fontSize: 9,
+                        ),
+                      ),
+                      Row(
+                        children: List.generate(3, (starIdx) {
+                          return Icon(
+                            starIdx < displayStars ? Icons.star : Icons.star_border,
+                            color: starIdx < displayStars
+                                ? starColor
+                                : starColor.withValues(alpha: 0.2),
+                            size: 12,
+                          );
+                        }),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'VOLVER',
-                style: TextStyle(
-                  color: Colors.white30,
-                  fontFamily: 'Courier',
-                  fontSize: 11,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'VOLVER',
+                    style: TextStyle(
+                      color: Colors.white30,
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx); // Close dialog
-                // Start Campaign Level in síncrono feed
-                ref.read(timelineProvider.notifier).startCampaignLevel(level);
-                // Navigate back to the home page timeline view
-                context.pop();
-              },
-              child: Text(
-                'START LEVEL ENGINE',
-                style: TextStyle(
-                  color: level.isBoss ? CyberTheme.errorRed : accent,
-                  fontFamily: 'Courier',
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx); // Close dialog
+                    ref.read(settingsProvider.notifier).setCampaignSessionVolume(selectedVolume);
+                    ref.read(settingsProvider.notifier).setCampaignSessionDuration(selectedDuration);
+                    ref.read(timelineProvider.notifier).startCampaignLevel(level);
+                    context.pop();
+                  },
+                  child: Text(
+                    'START LEVEL ENGINE',
+                    style: TextStyle(
+                      color: level.isBoss ? CyberTheme.errorRed : accent,
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          }
         );
       },
     );

@@ -66,21 +66,20 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: Colors.black,
         body: SafeArea(
           child: Column(
             children: [
-              // ── HEADER ────────────────────────────────────────────────
               _GameHeader(state: state, notifier: notifier, accent: accent),
 
-              // ── LIENZO CENTRAL ────────────────────────────────────────
               Expanded(
                 child: Stack(
                   children: [
                     LayoutBuilder(
                       builder: (ctx, constraints) {
                         final h = constraints.maxHeight;
-                        final fontSize = (h * 0.52).clamp(56.0, 220.0);
+                        final fontSize = (h * 0.52).clamp(h * 0.3, h * 0.8);
 
                         if (state.isLoading) {
                           return Center(
@@ -173,7 +172,6 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                       },
                     ),
 
-                    // ── OVERLAY DE PAUSA / BIENVENIDA ────────────────────────
                     if (state.engineState != EngineState.playing)
                       Positioned(
                         bottom: 0,
@@ -182,29 +180,31 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                         child: Container(
                           padding: const EdgeInsets.only(bottom: 24),
                           color: Colors.transparent,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _MenuAction(
-                                label: state.engineState == EngineState.welcome
-                                    ? '[ ENTRAR AL SISTEMA ]'
-                                    : '[ REANUDAR ]',
-                                accent: accent,
-                                onTap: notifier.resume,
-                              ),
-                              const SizedBox(height: 12),
-                              _MenuAction(
-                                label: '[ AJUSTES CONTEXTUALES ]',
-                                accent: accent,
-                                onTap: () => MecaContextSettings.show(context),
-                              ),
-                              const SizedBox(height: 12),
-                              _MenuAction(
-                                label: '[ SALIR DEL MOTOR ]',
-                                accent: accent,
-                                onTap: () => SystemNavigator.pop(),
-                              ),
-                            ],
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _MenuAction(
+                                  label: state.engineState == EngineState.welcome
+                                      ? '[ ENTRAR AL SISTEMA ]'
+                                      : '[ REANUDAR ]',
+                                  accent: accent,
+                                  onTap: notifier.resume,
+                                ),
+                                const SizedBox(height: 12),
+                                _MenuAction(
+                                  label: '[ AJUSTES CONTEXTUALES ]',
+                                  accent: accent,
+                                  onTap: () => MecaContextSettings.show(context),
+                                ),
+                                const SizedBox(height: 12),
+                                _MenuAction(
+                                  label: '[ SALIR DEL MOTOR ]',
+                                  accent: accent,
+                                  onTap: () => SystemNavigator.pop(),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -212,7 +212,6 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
                 ),
               ),
 
-              // ── CAMPO DE ENTRADA ──────────────────────────────────────
               if (state.engineState == EngineState.playing)
                 _InputField(
                   controller: input,
@@ -237,7 +236,6 @@ class _MecaEngineScreenState extends ConsumerState<MecaEngineScreen> {
   }
 }
 
-// ─── HEADER COMPACTO ──────────────────────────────────────────────────────────
 class _GameHeader extends StatelessWidget {
   const _GameHeader({
     required this.state,
@@ -256,7 +254,6 @@ class _GameHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Hamburguesa
           Builder(
             builder: (ctx) => GestureDetector(
               onTap: () => MecaContextSettings.show(context),
@@ -265,19 +262,18 @@ class _GameHeader extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Métricas compactas — Expanded consume el espacio disponible
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+            child: Wrap(
+              spacing: 10,
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _Metric('${state.streak}', Icons.local_fire_department, accent),
-                const SizedBox(width: 10),
                 _Metric(
                   state.avgMs > 0 ? '${state.avgMs}ms' : '—',
                   Icons.speed,
                   accent,
                 ),
-                const SizedBox(width: 10),
                 _Metric(
                   '${(state.hitRate * 100).toStringAsFixed(0)}%',
                   Icons.track_changes,
@@ -287,7 +283,6 @@ class _GameHeader extends StatelessWidget {
             ),
           ),
 
-          // Selector de modo — compacto
           _ModeChip(
             label: state.mode.label,
             accent: accent,
@@ -374,7 +369,6 @@ class _ModeChip extends StatelessWidget {
   }
 }
 
-// ─── CAMPO DE ENTRADA MINIMALISTA ─────────────────────────────────────────────
 class _InputField extends StatelessWidget {
   const _InputField({
     required this.controller,
@@ -399,8 +393,8 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
+    return FractionallySizedBox(
+      widthFactor: 0.8,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -454,7 +448,7 @@ class _MenuAction extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        color: Colors.transparent, // expanded hit area
+        color: Colors.transparent,
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Text(
           label,

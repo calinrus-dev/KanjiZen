@@ -84,4 +84,8 @@ class Settings extends _$Settings {
       state = state.copyWith(strokeAnimationSpeed: s.clamp(0.5, 3.0));
   void toggleEnableAudio() =>
       state = state.copyWith(enableAudio: !state.enableAudio);
+  void setCampaignSessionVolume(int volume) =>
+      state = state.copyWith(campaignSessionVolume: volume);
+  void setCampaignSessionDuration(int duration) =>
+      state = state.copyWith(campaignSessionDuration: duration);
 }

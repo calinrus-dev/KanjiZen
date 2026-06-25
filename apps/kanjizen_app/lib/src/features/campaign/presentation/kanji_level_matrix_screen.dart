@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +6,7 @@ import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kz_data/kz_data.dart';
 import 'package:kz_ui_components/kz_ui_components.dart';
+import 'package:kanjizen_app/src/providers/timeline_provider.dart';
 
 // ─── MODELO DE NIVEL KANJI ────────────────────────────────────────────────────
 
@@ -178,121 +178,184 @@ class _KanjiLevelMatrixScreenState
     KanjiLevelModel level,
     Color accent,
   ) {
+    final settings = ref.read(settingsProvider);
+    int selectedVolume = settings.campaignSessionVolume;
+    int selectedDuration = settings.campaignSessionDuration;
+
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF05060A),
-        shape: Border.all(color: accent.withValues(alpha: 0.3)),
-        title: Text(
-          'NIVEL ${level.id} — ${level.subCategory}',
-          style: TextStyle(
-            color: accent,
-            fontFamily: 'Courier',
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'KANJIS OBJETIVOS:',
-              style: TextStyle(
-                color: Colors.white38,
-                fontFamily: 'Courier',
-                fontSize: 9,
-                letterSpacing: 1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              level.requiredKanjis.join('  '),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontFamily: 'Courier',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${level.requiredKanjis.length} caracteres — 2 FASES: EXPOSICIÓN + PRODUCCIÓN',
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'Courier',
-                fontSize: 10,
-              ),
-            ),
-            if (level.starsEarned > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: List.generate(
-                  3,
-                  (i) => Icon(
-                    i < level.starsEarned ? Icons.star : Icons.star_border,
-                    color: accent,
-                    size: 14,
-                  ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF05060A),
+              shape: Border.all(color: accent.withValues(alpha: 0.3)),
+              title: Text(
+                'NIVEL ${level.id} — ${level.subCategory}',
+                style: TextStyle(
+                  color: accent,
+                  fontFamily: 'Courier',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
                 ),
               ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'VOLVER',
-              style: TextStyle(
-                color: Colors.white30,
-                fontFamily: 'Courier',
-                fontSize: 11,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'KANJIS OBJETIVOS:',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontFamily: 'Courier',
+                      fontSize: 9,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    level.requiredKanjis.join('  '),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontFamily: 'Courier',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'VOLUMEN DE DECK:',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontFamily: 'Courier',
+                      fontSize: 9,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [15, 30, 50].map((v) {
+                      final active = selectedVolume == v;
+                      return GestureDetector(
+                        onTap: () => setState(() => selectedVolume = v),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: active ? accent : Colors.white10),
+                            color: active ? accent.withValues(alpha: 0.1) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Text(
+                            '$v ÍTEMS',
+                            style: TextStyle(
+                              color: active ? accent : Colors.white30,
+                              fontFamily: 'Courier',
+                              fontSize: 9,
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'LÍMITE DE TIEMPO:',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontFamily: 'Courier',
+                      fontSize: 9,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      (0, 'SIN LÍMITE'),
+                      (60, '1 MIN'),
+                      (180, '3 MIN'),
+                      (300, '5 MIN'),
+                    ].map((pair) {
+                      final active = selectedDuration == pair.$1;
+                      return GestureDetector(
+                        onTap: () => setState(() => selectedDuration = pair.$1),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: active ? accent : Colors.white10),
+                            color: active && pair.$1 > 0 ? accent.withValues(alpha: 0.1) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Text(
+                            pair.$2,
+                            style: TextStyle(
+                              color: active ? accent : Colors.white30,
+                              fontFamily: 'Courier',
+                              fontSize: 9,
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  if (level.starsEarned > 0) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: List.generate(
+                        3,
+                        (i) => Icon(
+                          i < level.starsEarned ? Icons.star : Icons.star_border,
+                          color: accent,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _startAcquisitionEngine(level, accent);
-            },
-            child: Text(
-              'START LEVEL ENGINE',
-              style: TextStyle(
-                color: accent,
-                fontFamily: 'Courier',
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'VOLVER',
+                    style: TextStyle(
+                      color: Colors.white30,
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ref.read(settingsProvider.notifier).setCampaignSessionVolume(selectedVolume);
+                    ref.read(settingsProvider.notifier).setCampaignSessionDuration(selectedDuration);
+                    ref.read(timelineProvider.notifier).startKanjiCampaignLevel(level);
+                    context.pop();
+                  },
+                  child: Text(
+                    'START LEVEL ENGINE',
+                    style: TextStyle(
+                      color: accent,
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 
-  void _startAcquisitionEngine(KanjiLevelModel level, Color accent) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.black,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (_) => _AcquisitionEngine(
-        level: level,
-        accent: accent,
-        onCompleted: (stars) {
-          ref
-              .read(kanjiLevelProvider.notifier)
-              .completeLevel(level.category, level.id, stars);
-          ref
-              .read(kanjiLevelProvider.notifier)
-              .unlockKanjisInDb(level.requiredKanjis);
-        },
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {

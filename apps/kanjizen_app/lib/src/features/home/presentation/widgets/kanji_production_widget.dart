@@ -54,101 +54,115 @@ class KanjiProductionWidget extends ConsumerWidget {
     // Active interactive view
     final opacity = timelineState.isPaused ? 0.2 : 1.0;
 
-    final mediaQuery = MediaQuery.of(context);
-    final totalHeight = mediaQuery.size.height;
-    final keyboardHeight = mediaQuery.viewInsets.bottom;
-    final availableHeight = totalHeight - keyboardHeight;
-    final isCompact = availableHeight < 480;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minDim =
+            constraints.maxWidth < constraints.maxHeight
+                ? constraints.maxWidth
+                : constraints.maxHeight;
+        final boxSize = minDim * 0.4;
+        final fontSize = minDim * 0.32;
 
-    final boxSize = isCompact ? 100.0 : 180.0;
-    final fontSize = isCompact ? 80.0 : 140.0;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (isRecall) ...[
-            // Selective erasure: hides Kanji from center, displays concept only
-            const Icon(Icons.visibility_off, size: 24, color: Colors.white24),
-            const SizedBox(height: 12),
-            Text(
-              kanji.meanings.first.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: opacity),
-                fontSize: isCompact ? 22 : 32,
-                fontFamily: 'Courier',
-                letterSpacing: 4,
-                fontWeight: useBold ? FontWeight.bold : FontWeight.w300,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'EVOCA Y ESCRIBE EL KANJI A CIEGAS',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: accent.withValues(alpha: 0.4),
-                fontSize: 10,
-                fontFamily: 'Courier',
-                letterSpacing: 1.5,
-              ),
-            ),
-          ] else ...[
-            // Production: displays Kanji naked (vector or text) + concept
-            SizedBox(
-              width: boxSize,
-              height: boxSize,
-              child: Opacity(
-                opacity: opacity,
-                child:
-                    settings.enableStrokeAnimation && kanji.svgPaths.isNotEmpty
-                    ? CustomPaint(
-                        painter: KanjiVectorPainter(
-                          svgPaths: kanji.svgPaths,
-                          accentColor: accent,
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          kanji.character,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: fontSize,
-                            fontFamily: 'Courier',
-                            fontWeight: useBold
-                                ? FontWeight.w900
-                                : FontWeight.w100,
-                          ),
-                        ),
+        return SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isRecall) ...[
+                  // Selective erasure: hides Kanji from center, displays concept only
+                  const Icon(Icons.visibility_off, size: 24, color: Colors.white24),
+                  const SizedBox(height: 12),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      kanji.meanings.first.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: opacity),
+                        fontSize: minDim * 0.07,
+                        fontFamily: 'Courier',
+                        letterSpacing: 4,
+                        fontWeight: useBold ? FontWeight.bold : FontWeight.w300,
                       ),
-              ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'EVOCA Y ESCRIBE EL KANJI A CIEGAS',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: accent.withValues(alpha: 0.4),
+                      fontSize: 10,
+                      fontFamily: 'Courier',
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ] else ...[
+                  // Production: displays Kanji naked (vector or text) + concept
+                  SizedBox(
+                    width: boxSize,
+                    height: boxSize,
+                    child: Opacity(
+                      opacity: opacity,
+                      child:
+                          settings.enableStrokeAnimation && kanji.svgPaths.isNotEmpty
+                          ? CustomPaint(
+                              painter: KanjiVectorPainter(
+                                svgPaths: kanji.svgPaths,
+                                accentColor: accent,
+                              ),
+                            )
+                          : Center(
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                child: Text(
+                                  kanji.character,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: fontSize,
+                                    fontFamily: 'Courier',
+                                    fontWeight: useBold
+                                        ? FontWeight.w900
+                                        : FontWeight.w100,
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      kanji.meanings.first.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70.withValues(alpha: opacity),
+                        fontSize: 18,
+                        fontFamily: 'Courier',
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                  if (productionNode?.showHint == true) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'PISTA: ${kanji.onyomi.isNotEmpty ? kanji.onyomi.first : ""} ${kanji.kunyomi.isNotEmpty ? kanji.kunyomi.first : ""}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: accent.withValues(alpha: 0.5),
+                        fontSize: 11,
+                        fontFamily: 'Courier',
+                      ),
+                    ),
+                  ],
+                ],
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              kanji.meanings.first.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white70.withValues(alpha: opacity),
-                fontSize: 18,
-                fontFamily: 'Courier',
-                letterSpacing: 2,
-              ),
-            ),
-            if (productionNode?.showHint == true) ...[
-              const SizedBox(height: 8),
-              Text(
-                'PISTA: ${kanji.onyomi.isNotEmpty ? kanji.onyomi.first : ""} ${kanji.kunyomi.isNotEmpty ? kanji.kunyomi.first : ""}',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: accent.withValues(alpha: 0.5),
-                  fontSize: 11,
-                  fontFamily: 'Courier',
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 

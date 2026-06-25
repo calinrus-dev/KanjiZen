@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kz_core/kz_core.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kz_data/kz_data.dart';
+import 'package:kz_ui_components/kz_ui_components.dart';
 import 'package:kanjizen_app/src/features/inventory/presentation/widgets/character_detail_sheet.dart';
 import 'package:kanjizen_app/src/features/home/presentation/general_drawer.dart';
 
@@ -589,9 +590,7 @@ class _InventoryDashboardScreenState
       );
     }
 
-    final hira = _allKanas.where((k) => !k.isKatakana).toList();
-    final kata = _allKanas.where((k) => k.isKatakana).toList();
-    final kanjis = _filteredKanjis;
+
     // Auto-expandir sección kanji cuando hay filtros activos
     final hasKanjiFilters =
         _selectedGrades.isNotEmpty ||
@@ -787,23 +786,9 @@ class _InventoryDashboardScreenState
 
             // ── MAIN CONTENT VIEW (RADICAL GRID OR CLASSIFICATION TREE) ─
             Expanded(
-              child: _showRadicalGrid
-                  ? _build12x18RadicalGrid(accent)
-                  : ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        // Section 1: Hiragana
-                        _buildHiraganaSection(hira, accent),
-                        const SizedBox(height: 12),
-
-                        // Section 2: Katakana
-                        _buildKatakanaSection(kata, accent),
-                        const SizedBox(height: 12),
-
-                        // Section 3: Kanji
-                        _buildKanjiSection(kanjis, accent),
-                      ],
-                    ),
+              child: CustomScrollView(
+                slivers: _buildSlivers(accent),
+              ),
             ),
           ],
         ),
@@ -811,605 +796,656 @@ class _InventoryDashboardScreenState
     );
   }
 
-  // 12x18 Cyan Technical Radical Grid
-  Widget _build12x18RadicalGrid(Color accent) {
-    return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.all(8),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 12,
-          crossAxisSpacing: 2,
-          mainAxisSpacing: 2,
-          childAspectRatio: 1.0,
+  List<Widget> _buildSlivers(Color accent) {
+    final List<Widget> slivers = [];
+
+    if (_showRadicalGrid) {
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.all(8),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 12,
+              crossAxisSpacing: 2,
+              mainAxisSpacing: 2,
+              childAspectRatio: 1.0,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) {
+                if (i >= traditionalRadicals.length) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.cyan.withValues(alpha: 0.05)),
+                    ),
+                  );
+                }
+                final rad = traditionalRadicals[i];
+                final isSelected = _selectedRadical == rad;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedRadical = rad;
+                      _showRadicalGrid = false;
+                      _kanjiExpanded = true;
+                    });
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.cyan.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected
+                            ? Colors.cyanAccent
+                            : Colors.cyan.withValues(alpha: 0.2),
+                        width: isSelected ? 1.5 : 0.8,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      rad,
+                      style: TextStyle(
+                        color: isSelected ? Colors.cyanAccent : Colors.white70,
+                        fontFamily: 'Courier',
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              childCount: 216,
+            ),
+          ),
         ),
-        itemCount: 216, // 12 columns x 18 rows
-        itemBuilder: (ctx, i) {
-          if (i >= traditionalRadicals.length) {
-            // Fillers
-            return Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.cyan.withValues(alpha: 0.05)),
-              ),
-            );
-          }
-          final rad = traditionalRadicals[i];
-          final isSelected = _selectedRadical == rad;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedRadical = rad;
-                _showRadicalGrid = false;
-                _kanjiExpanded = true; // Expand kanji node to show result
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.cyan.withValues(alpha: 0.2)
-                    : Colors.transparent,
-                border: Border.all(
-                  color: isSelected
-                      ? Colors.cyanAccent
-                      : Colors.cyan.withValues(alpha: 0.2),
-                  width: isSelected ? 1.5 : 0.8,
+      );
+      return slivers;
+    }
+
+    final hira = _allKanas.where((k) => !k.isKatakana).toList();
+    final kata = _allKanas.where((k) => k.isKatakana).toList();
+    final kanjis = _filteredKanjis;
+
+    // SECTION 1: HIRAGANA
+    slivers.add(
+      SliverToBoxAdapter(
+        child: _buildHiraganaHeader(hira, accent),
+      ),
+    );
+
+    if (_hiraExpanded) {
+      final Map<String, List<KanaModel>> groups = {};
+      for (final col in kanaColumnsOrder) {
+        groups[col] = [];
+      }
+      for (final k in hira) {
+        final col = _getKanaColumn(k.romaji);
+        groups.putIfAbsent(col, () => []).add(k);
+      }
+
+      for (final col in kanaColumnsOrder) {
+        final list = groups[col] ?? [];
+        if (list.isEmpty) continue;
+        final isColExpanded = _expandedHiraColumns.contains(col);
+
+        slivers.add(
+          SliverToBoxAdapter(
+            child: _buildHiraganaSubHeader(col, list, isColExpanded),
+          ),
+        );
+
+        if (isColExpanded) {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  crossAxisSpacing: 6,
+                  mainAxisSpacing: 6,
+                  childAspectRatio: 1.2,
                 ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                rad,
-                style: TextStyle(
-                  color: isSelected ? Colors.cyanAccent : Colors.white70,
-                  fontFamily: 'Courier',
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _buildKanaCell(list[i], accent),
+                  childCount: list.length,
                 ),
               ),
             ),
           );
-        },
+        }
+      }
+    }
+
+    // Divider between sections
+    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+
+    // SECTION 2: KATAKANA
+    slivers.add(
+      SliverToBoxAdapter(
+        child: _buildKatakanaHeader(kata, accent),
+      ),
+    );
+
+    if (_kataExpanded) {
+      final Map<String, List<KanaModel>> groups = {};
+      for (final col in kanaColumnsOrder) {
+        groups[col] = [];
+      }
+      for (final k in kata) {
+        final col = _getKanaColumn(k.romaji);
+        groups.putIfAbsent(col, () => []).add(k);
+      }
+
+      for (final col in kanaColumnsOrder) {
+        final list = groups[col] ?? [];
+        if (list.isEmpty) continue;
+        final isColExpanded = _expandedKataColumns.contains(col);
+
+        slivers.add(
+          SliverToBoxAdapter(
+            child: _buildKatakanaSubHeader(col, list, isColExpanded),
+          ),
+        );
+
+        if (isColExpanded) {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  crossAxisSpacing: 6,
+                  mainAxisSpacing: 6,
+                  childAspectRatio: 1.2,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _buildKanaCell(list[i], accent),
+                  childCount: list.length,
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    // Divider between sections
+    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+
+    // SECTION 3: KANJI
+    slivers.add(
+      SliverToBoxAdapter(
+        child: _buildKanjiHeader(kanjis, accent),
+      ),
+    );
+
+    if (_kanjiExpanded) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: _buildKanjiOrgToggles(accent),
+        ),
+      );
+
+      final Map<String, List<KanjiModel>> groups = {};
+      if (_kanjiOrg == KanjiOrganization.grade) {
+        for (final g in [1, 2, 3, 4, 5, 6, 8]) {
+          final label = g == 8 ? 'Jōyō' : 'Grado $g';
+          groups[label] = [];
+        }
+        for (final k in kanjis) {
+          final label =
+              k.joyo == 8 ||
+                  (k.joyo != 1 &&
+                      k.joyo != 2 &&
+                      k.joyo != 3 &&
+                      k.joyo != 4 &&
+                      k.joyo != 5 &&
+                      k.joyo != 6)
+              ? 'Jōyō'
+              : 'Grado ${k.joyo}';
+          groups.putIfAbsent(label, () => []).add(k);
+        }
+      } else {
+        for (final jl in [5, 4, 3, 2, 1]) {
+          groups['N$jl'] = [];
+        }
+        for (final k in kanjis) {
+          final label = 'N${k.jlpt}';
+          groups.putIfAbsent(label, () => []).add(k);
+        }
+      }
+
+      final groupKeys = groups.keys.where((k) => groups[k]!.isNotEmpty).toList();
+
+      for (final group in groupKeys) {
+        final list = groups[group]!;
+        final isGroupExpanded = _expandedKanjiGroups.contains(group);
+
+        slivers.add(
+          SliverToBoxAdapter(
+            child: _buildKanjiGroupHeader(group, list, isGroupExpanded),
+          ),
+        );
+
+        if (isGroupExpanded) {
+          slivers.add(
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 6,
+                  crossAxisSpacing: 6,
+                  mainAxisSpacing: 6,
+                  childAspectRatio: 1.0,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _buildKanjiCell(list[i], accent),
+                  childCount: list.length,
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    return slivers;
+  }
+
+  Widget _buildHiraganaHeader(List<KanaModel> items, Color accent) {
+    return GestureDetector(
+      onTap: () => setState(() => _hiraExpanded = !_hiraExpanded),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white10),
+          color: Colors.white.withValues(alpha: 0.02),
+        ),
+        child: Row(
+          children: [
+            Text(
+              _hiraExpanded ? '[-] HIRAGANA' : '[+] HIRAGANA',
+              style: TextStyle(
+                color: accent,
+                fontFamily: 'Courier',
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${items.where((k) => k.isUnlocked).length} DESBLOQUEADOS',
+              style: const TextStyle(
+                color: Colors.white30,
+                fontFamily: 'Courier',
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Hiragana Tree Branch
-  Widget _buildHiraganaSection(List<KanaModel> items, Color accent) {
-    final Map<String, List<KanaModel>> groups = {};
-    for (final col in kanaColumnsOrder) {
-      groups[col] = [];
-    }
-    for (final k in items) {
-      final col = _getKanaColumn(k.romaji);
-      groups.putIfAbsent(col, () => []).add(k);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => setState(() => _hiraExpanded = !_hiraExpanded),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.white10),
-              color: Colors.white.withValues(alpha: 0.02),
+  Widget _buildHiraganaSubHeader(String col, List<KanaModel> list, bool isColExpanded) {
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (isColExpanded) {
+          _expandedHiraColumns.remove(col);
+        } else {
+          _expandedHiraColumns.add(col);
+        }
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        margin: const EdgeInsets.only(left: 12),
+        child: Row(
+          children: [
+            Text(
+              isColExpanded ? '  ▼ $col' : '  ▶ $col',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontFamily: 'Courier',
+                fontSize: 10,
+              ),
             ),
-            child: Row(
-              children: [
-                Text(
-                  _hiraExpanded ? '[-] HIRAGANA' : '[+] HIRAGANA',
-                  style: TextStyle(
-                    color: accent,
-                    fontFamily: 'Courier',
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${items.where((k) => k.isUnlocked).length} DESBLOQUEADOS',
-                  style: const TextStyle(
-                    color: Colors.white30,
-                    fontFamily: 'Courier',
-                    fontSize: 9,
-                  ),
-                ),
-              ],
+            const Spacer(),
+            Text(
+              '${list.length} ítems',
+              style: const TextStyle(
+                color: Colors.white24,
+                fontFamily: 'Courier',
+                fontSize: 9,
+              ),
             ),
-          ),
+          ],
         ),
-        if (_hiraExpanded)
-          Padding(
-            padding: const EdgeInsets.only(left: 12.0, top: 4.0),
-            child: Column(
-              children: kanaColumnsOrder.map((col) {
-                final list = groups[col] ?? [];
-                if (list.isEmpty) return const SizedBox.shrink();
-                final isColExpanded = _expandedHiraColumns.contains(col);
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        if (isColExpanded) {
-                          _expandedHiraColumns.remove(col);
-                        } else {
-                          _expandedHiraColumns.add(col);
-                        }
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              isColExpanded ? '  ▼ $col' : '  ▶ $col',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontFamily: 'Courier',
-                                fontSize: 10,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${list.length} ítems',
-                              style: const TextStyle(
-                                color: Colors.white24,
-                                fontFamily: 'Courier',
-                                fontSize: 9,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (isColExpanded)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 4.0,
-                        ),
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 6,
-                                crossAxisSpacing: 6,
-                                mainAxisSpacing: 6,
-                                childAspectRatio: 1.2,
-                              ),
-                          itemCount: list.length,
-                          itemBuilder: (ctx, i) {
-                            final k = list[i];
-                            return GestureDetector(
-                              onTap: k.isUnlocked
-                                  ? () => _showCharDetail(k, accent)
-                                  : null,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: k.isUnlocked
-                                        ? accent.withValues(alpha: 0.3)
-                                        : Colors.white.withValues(alpha: 0.05),
-                                  ),
-                                  color: k.isUnlocked
-                                      ? accent.withValues(alpha: 0.02)
-                                      : Colors.transparent,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  k.character,
-                                  style: TextStyle(
-                                    color: k.isUnlocked
-                                        ? Colors.white
-                                        : Colors.white10,
-                                    fontSize: 18,
-                                    fontWeight: k.isUnlocked
-                                        ? FontWeight.normal
-                                        : FontWeight.w100,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-      ],
+      ),
     );
   }
 
-  // Katakana Tree Branch
-  Widget _buildKatakanaSection(List<KanaModel> items, Color accent) {
-    final Map<String, List<KanaModel>> groups = {};
-    for (final col in kanaColumnsOrder) {
-      groups[col] = [];
-    }
-    for (final k in items) {
-      final col = _getKanaColumn(k.romaji);
-      groups.putIfAbsent(col, () => []).add(k);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => setState(() => _kataExpanded = !_kataExpanded),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.white10),
-              color: Colors.white.withValues(alpha: 0.02),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  _kataExpanded ? '[-] KATAKANA' : '[+] KATAKANA',
-                  style: TextStyle(
-                    color: accent,
-                    fontFamily: 'Courier',
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${items.where((k) => k.isUnlocked).length} DESBLOQUEADOS',
-                  style: const TextStyle(
-                    color: Colors.white30,
-                    fontFamily: 'Courier',
-                    fontSize: 9,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget _buildKatakanaHeader(List<KanaModel> items, Color accent) {
+    return GestureDetector(
+      onTap: () => setState(() => _kataExpanded = !_kataExpanded),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white10),
+          color: Colors.white.withValues(alpha: 0.02),
         ),
-        if (_kataExpanded)
-          Padding(
-            padding: const EdgeInsets.only(left: 12.0, top: 4.0),
-            child: Column(
-              children: kanaColumnsOrder.map((col) {
-                final list = groups[col] ?? [];
-                if (list.isEmpty) return const SizedBox.shrink();
-                final isColExpanded = _expandedKataColumns.contains(col);
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        if (isColExpanded) {
-                          _expandedKataColumns.remove(col);
-                        } else {
-                          _expandedKataColumns.add(col);
-                        }
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              isColExpanded ? '  ▼ $col' : '  ▶ $col',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontFamily: 'Courier',
-                                fontSize: 10,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${list.length} ítems',
-                              style: const TextStyle(
-                                color: Colors.white24,
-                                fontFamily: 'Courier',
-                                fontSize: 9,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (isColExpanded)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 4.0,
-                        ),
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 6,
-                                crossAxisSpacing: 6,
-                                mainAxisSpacing: 6,
-                                childAspectRatio: 1.2,
-                              ),
-                          itemCount: list.length,
-                          itemBuilder: (ctx, i) {
-                            final k = list[i];
-                            return GestureDetector(
-                              onTap: k.isUnlocked
-                                  ? () => _showCharDetail(k, accent)
-                                  : null,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: k.isUnlocked
-                                        ? accent.withValues(alpha: 0.3)
-                                        : Colors.white.withValues(alpha: 0.05),
-                                  ),
-                                  color: k.isUnlocked
-                                      ? accent.withValues(alpha: 0.02)
-                                      : Colors.transparent,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  k.character,
-                                  style: TextStyle(
-                                    color: k.isUnlocked
-                                        ? Colors.white
-                                        : Colors.white10,
-                                    fontSize: 18,
-                                    fontWeight: k.isUnlocked
-                                        ? FontWeight.normal
-                                        : FontWeight.w100,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              }).toList(),
+        child: Row(
+          children: [
+            Text(
+              _kataExpanded ? '[-] KATAKANA' : '[+] KATAKANA',
+              style: TextStyle(
+                color: accent,
+                fontFamily: 'Courier',
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
             ),
-          ),
-      ],
+            const Spacer(),
+            Text(
+              '${items.where((k) => k.isUnlocked).length} DESBLOQUEADOS',
+              style: const TextStyle(
+                color: Colors.white30,
+                fontFamily: 'Courier',
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // Kanji Tree Branch (Support alternable structures: School Grade or JLPT)
-  Widget _buildKanjiSection(List<KanjiModel> items, Color accent) {
-    // Perform grouping based on alternable state
-    final Map<String, List<KanjiModel>> groups = {};
-
-    if (_kanjiOrg == KanjiOrganization.grade) {
-      // Structure A: School Grade (G1..G6, Jōyō)
-      for (final g in [1, 2, 3, 4, 5, 6, 8]) {
-        final label = g == 8 ? 'Jōyō' : 'Grado $g';
-        groups[label] = [];
-      }
-      for (final k in items) {
-        final label =
-            k.joyo == 8 ||
-                (k.joyo != 1 &&
-                    k.joyo != 2 &&
-                    k.joyo != 3 &&
-                    k.joyo != 4 &&
-                    k.joyo != 5 &&
-                    k.joyo != 6)
-            ? 'Jōyō'
-            : 'Grado ${k.joyo}';
-        groups.putIfAbsent(label, () => []).add(k);
-      }
-    } else {
-      // Structure B: JLPT (N5..N1)
-      for (final jl in [5, 4, 3, 2, 1]) {
-        groups['N$jl'] = [];
-      }
-      for (final k in items) {
-        final label = 'N${k.jlpt}';
-        groups.putIfAbsent(label, () => []).add(k);
-      }
-    }
-
-    final groupKeys = groups.keys.where((k) => groups[k]!.isNotEmpty).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => setState(() => _kanjiExpanded = !_kanjiExpanded),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.white10),
-              color: Colors.white.withValues(alpha: 0.02),
+  Widget _buildKatakanaSubHeader(String col, List<KanaModel> list, bool isColExpanded) {
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (isColExpanded) {
+          _expandedKataColumns.remove(col);
+        } else {
+          _expandedKataColumns.add(col);
+        }
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        margin: const EdgeInsets.only(left: 12),
+        child: Row(
+          children: [
+            Text(
+              isColExpanded ? '  ▼ $col' : '  ▶ $col',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontFamily: 'Courier',
+                fontSize: 10,
+              ),
             ),
-            child: Row(
-              children: [
-                Text(
-                  _kanjiExpanded ? '[-] KANJI' : '[+] KANJI',
-                  style: TextStyle(
-                    color: accent,
-                    fontFamily: 'Courier',
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${items.length} FILTRADOS',
-                  style: const TextStyle(
-                    color: Colors.white30,
-                    fontFamily: 'Courier',
-                    fontSize: 9,
-                  ),
-                ),
-              ],
+            const Spacer(),
+            Text(
+              '${list.length} ítems',
+              style: const TextStyle(
+                color: Colors.white24,
+                fontFamily: 'Courier',
+                fontSize: 9,
+              ),
             ),
-          ),
+          ],
         ),
-        if (_kanjiExpanded) ...[
-          // Alternable organization toggles
-          Padding(
-            padding: const EdgeInsets.only(left: 12.0, top: 8.0, bottom: 4.0),
-            child: Row(
-              children: [
-                const Text(
-                  'ESTRUCTURA:',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontFamily: 'Courier',
-                    fontSize: 9,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => _kanjiOrg = KanjiOrganization.grade),
-                  child: Text(
-                    '[ GRADO ESCOLAR ]',
-                    style: TextStyle(
-                      color: _kanjiOrg == KanjiOrganization.grade
-                          ? accent
-                          : Colors.white24,
-                      fontFamily: 'Courier',
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => _kanjiOrg = KanjiOrganization.jlpt),
-                  child: Text(
-                    '[ JLPT ]',
-                    style: TextStyle(
-                      color: _kanjiOrg == KanjiOrganization.jlpt
-                          ? accent
-                          : Colors.white24,
-                      fontFamily: 'Courier',
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+      ),
+    );
+  }
+
+  Widget _buildKanjiHeader(List<KanjiModel> items, Color accent) {
+    return GestureDetector(
+      onTap: () => setState(() => _kanjiExpanded = !_kanjiExpanded),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white10),
+          color: Colors.white.withValues(alpha: 0.02),
+        ),
+        child: Row(
+          children: [
+            Text(
+              _kanjiExpanded ? '[-] KANJI' : '[+] KANJI',
+              style: TextStyle(
+                color: accent,
+                fontFamily: 'Courier',
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${items.length} FILTRADOS',
+              style: const TextStyle(
+                color: Colors.white30,
+                fontFamily: 'Courier',
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKanjiOrgToggles(Color accent) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12.0, top: 8.0, bottom: 4.0),
+      child: Row(
+        children: [
+          const Text(
+            'ESTRUCTURA:',
+            style: TextStyle(
+              color: Colors.white38,
+              fontFamily: 'Courier',
+              fontSize: 9,
             ),
           ),
-
-          Padding(
-            padding: const EdgeInsets.only(left: 12.0),
-            child: Column(
-              children: groupKeys.map((group) {
-                final list = groups[group]!;
-                final isGroupExpanded = _expandedKanjiGroups.contains(group);
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        if (isGroupExpanded) {
-                          _expandedKanjiGroups.remove(group);
-                        } else {
-                          _expandedKanjiGroups.add(group);
-                        }
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              isGroupExpanded ? '  ▼ $group' : '  ▶ $group',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontFamily: 'Courier',
-                                fontSize: 10,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${list.length} ítems',
-                              style: const TextStyle(
-                                color: Colors.white24,
-                                fontFamily: 'Courier',
-                                fontSize: 9,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (isGroupExpanded)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 4.0,
-                        ),
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 6,
-                                crossAxisSpacing: 6,
-                                mainAxisSpacing: 6,
-                                childAspectRatio: 1.0,
-                              ),
-                          itemCount: list.length,
-                          itemBuilder: (ctx, i) {
-                            final k = list[i];
-                            return GestureDetector(
-                              onTap: () => _showCharDetail(k, accent),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: k.isUnlocked
-                                        ? accent.withValues(alpha: 0.3)
-                                        : Colors.white.withValues(alpha: 0.05),
-                                  ),
-                                  color: k.isUnlocked
-                                      ? accent.withValues(alpha: 0.03)
-                                      : Colors.transparent,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  k.character,
-                                  style: TextStyle(
-                                    color: k.isUnlocked
-                                        ? Colors.white
-                                        : Colors.white24,
-                                    fontSize: 20,
-                                    fontWeight: k.isUnlocked
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              }).toList(),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => setState(() => _kanjiOrg = KanjiOrganization.grade),
+            child: Text(
+              '[ GRADO ESCOLAR ]',
+              style: TextStyle(
+                color: _kanjiOrg == KanjiOrganization.grade ? accent : Colors.white24,
+                fontFamily: 'Courier',
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => setState(() => _kanjiOrg = KanjiOrganization.jlpt),
+            child: Text(
+              '[ JLPT ]',
+              style: TextStyle(
+                color: _kanjiOrg == KanjiOrganization.jlpt ? accent : Colors.white24,
+                fontFamily: 'Courier',
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
-      ],
+      ),
+    );
+  }
+
+  Widget _buildKanjiGroupHeader(String group, List<KanjiModel> list, bool isGroupExpanded) {
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (isGroupExpanded) {
+          _expandedKanjiGroups.remove(group);
+        } else {
+          _expandedKanjiGroups.add(group);
+        }
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        margin: const EdgeInsets.only(left: 12),
+        child: Row(
+          children: [
+            Text(
+              isGroupExpanded ? '  ▼ $group' : '  ▶ $group',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontFamily: 'Courier',
+                fontSize: 10,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${list.length} ítems',
+              style: const TextStyle(
+                color: Colors.white24,
+                fontFamily: 'Courier',
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKanaCell(KanaModel k, Color accent) {
+    return GestureDetector(
+      onTap: k.isUnlocked ? () => _showCharDetail(k, accent) : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: k.isUnlocked
+              ? accent.withValues(alpha: 0.03)
+              : Colors.transparent,
+          border: Border.all(
+            color: k.isUnlocked
+                ? accent.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.05),
+          ),
+          borderRadius: BorderRadius.circular(2),
+        ),
+        alignment: Alignment.center,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              k.character,
+              style: TextStyle(
+                color: k.isUnlocked ? Colors.white : Colors.white10,
+                fontSize: 18,
+                fontWeight: k.isUnlocked ? FontWeight.normal : FontWeight.w100,
+              ),
+            ),
+            if (!k.isUnlocked)
+              const Positioned(
+                top: 2,
+                right: 2,
+                child: Icon(
+                  Icons.lock_outline,
+                  size: 8,
+                  color: Colors.white12,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKanjiCell(KanjiModel k, Color accent) {
+    return GestureDetector(
+      onTap: () => _showCharDetail(k, accent),
+      child: Container(
+        decoration: BoxDecoration(
+          color: k.isUnlocked
+              ? accent.withValues(alpha: 0.05)
+              : Colors.red.withValues(alpha: 0.02),
+          border: Border.all(
+            color: k.isUnlocked
+                ? accent.withValues(alpha: 0.4)
+                : Colors.red.withValues(alpha: 0.15),
+            width: k.isUnlocked ? 1.0 : 0.8,
+          ),
+          borderRadius: BorderRadius.circular(2),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Kanji vector shape
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: k.svgPaths.isNotEmpty
+                    ? CustomPaint(
+                        painter: KanjiVectorPainter(
+                          svgPaths: k.svgPaths,
+                          accentColor: k.isUnlocked ? accent : Colors.red,
+                          progress: 1.0,
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          k.character,
+                          style: TextStyle(
+                            color: k.isUnlocked
+                                ? Colors.white
+                                : Colors.white10,
+                            fontFamily: 'Courier',
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            // Locked / Unlocked badge or indicators
+            if (!k.isUnlocked)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Icon(
+                  Icons.lock,
+                  size: 8,
+                  color: Colors.red.withValues(alpha: 0.3),
+                ),
+              )
+            else ...[
+              // Unlocked info: e.g. SRS score or level
+              Positioned(
+                bottom: 2,
+                right: 3,
+                child: Text(
+                  k.srsScore.toStringAsFixed(1),
+                  style: TextStyle(
+                    color: accent.withValues(alpha: 0.6),
+                    fontFamily: 'Courier',
+                    fontSize: 7,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (k.jlpt > 0)
+                Positioned(
+                  top: 2,
+                  left: 3,
+                  child: Text(
+                    'N${k.jlpt}',
+                    style: const TextStyle(
+                      color: Colors.white30,
+                      fontFamily: 'Courier',
+                      fontSize: 6,
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

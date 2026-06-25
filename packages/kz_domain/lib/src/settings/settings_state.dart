@@ -50,6 +50,8 @@ abstract class SettingsState with _$SettingsState {
     @Default(true) bool enableAudio,
     @Default(1.0) double canvasOpacity,
     @Default(false) bool useBoldText,
+    @Default(15) int campaignSessionVolume,
+    @Default(0) int campaignSessionDuration,
 
     // V3.0 New settings
     @Default(GridScale.auto) GridScale gridScale,

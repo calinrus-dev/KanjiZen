@@ -54,125 +54,127 @@ class _StrokeValidationWidgetState
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-        // Restar espacio aproximado ocupado por el texto y los espacios para dimensionar el canvas
-        final canvasSize = (availableHeight - 80).clamp(140.0, 220.0);
+        final canvasSize = (availableHeight * 0.7).clamp(140.0, 220.0);
 
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                k.meanings.first.toUpperCase(),
-                style: TextStyle(
-                  color: Colors.white38.withValues(alpha: opacity),
-                  fontSize: 14,
-                  fontFamily: 'Courier',
-                  letterSpacing: 2,
+        return SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  k.meanings.first.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white38.withValues(alpha: opacity),
+                    fontSize: 14,
+                    fontFamily: 'Courier',
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'DIBUJA EL TRAZO ${widget.node.currentStrokeIndex + 1} DE ${k.svgPaths.length}',
-                style: TextStyle(
-                  color: accent.withValues(alpha: 0.5),
-                  fontSize: 10,
-                  fontFamily: 'Courier',
-                  letterSpacing: 1.5,
+                const SizedBox(height: 8),
+                Text(
+                  'DIBUJA EL TRAZO ${widget.node.currentStrokeIndex + 1} DE ${k.svgPaths.length}',
+                  style: TextStyle(
+                    color: accent.withValues(alpha: 0.5),
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // Drawing Area (Reactivo y sin conflictos de gestos)
-              SizedBox(
-                width: canvasSize,
-                height: canvasSize,
-                child: RawGestureDetector(
-                  gestures: <Type, GestureRecognizerFactory>{
-                    ImmediatePanGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          ImmediatePanGestureRecognizer
-                        >(() => ImmediatePanGestureRecognizer(), (
-                          ImmediatePanGestureRecognizer instance,
-                        ) {
-                          instance
-                            ..onStart = (details) {
-                              if (timelineState.isPaused) return;
-                              setState(() {
-                                _currentStrokePoints.clear();
-                                _currentStrokePoints.add(details.localPosition);
-                              });
-                            }
-                            ..onUpdate = (details) {
-                              if (timelineState.isPaused) return;
-                              setState(() {
-                                _currentStrokePoints.add(details.localPosition);
-                              });
-                            }
-                            ..onEnd = (details) {
-                              if (timelineState.isPaused) return;
-                              if (_currentStrokePoints.length >= 2) {
-                                ref
-                                    .read(timelineProvider.notifier)
-                                    .onStrokeCompleted(
-                                      List.from(_currentStrokePoints),
-                                    );
+                // Drawing Area (Reactivo y sin conflictos de gestos)
+                SizedBox(
+                  width: canvasSize,
+                  height: canvasSize,
+                  child: RawGestureDetector(
+                    gestures: <Type, GestureRecognizerFactory>{
+                      ImmediatePanGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            ImmediatePanGestureRecognizer
+                          >(() => ImmediatePanGestureRecognizer(), (
+                            ImmediatePanGestureRecognizer instance,
+                          ) {
+                            instance
+                              ..onStart = (details) {
+                                if (timelineState.isPaused) return;
+                                setState(() {
+                                  _currentStrokePoints.clear();
+                                  _currentStrokePoints.add(details.localPosition);
+                                });
                               }
-                              setState(() {
-                                _currentStrokePoints.clear();
-                              });
-                            };
-                        }),
-                  },
-                  child: Stack(
-                    children: [
-                      // Dimmed Template Guide (15% opacity)
-                      if (settings.writeGuideTemplate)
+                              ..onUpdate = (details) {
+                                if (timelineState.isPaused) return;
+                                setState(() {
+                                  _currentStrokePoints.add(details.localPosition);
+                                });
+                              }
+                              ..onEnd = (details) {
+                                if (timelineState.isPaused) return;
+                                if (_currentStrokePoints.length >= 2) {
+                                  ref
+                                      .read(timelineProvider.notifier)
+                                      .onStrokeCompleted(
+                                        List.from(_currentStrokePoints),
+                                      );
+                                }
+                                setState(() {
+                                  _currentStrokePoints.clear();
+                                });
+                              };
+                          }),
+                    },
+                    child: Stack(
+                      children: [
+                        // Dimmed Template Guide (15% opacity)
+                        if (settings.writeGuideTemplate)
+                          Positioned.fill(
+                            child: Opacity(
+                              opacity: 0.15 * opacity,
+                              child: CustomPaint(
+                                painter: KanjiVectorPainter(
+                                  svgPaths: k.svgPaths,
+                                  accentColor: accent,
+                                  progress: 1.0,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Snapped strokes so far (neon green/accent)
                         Positioned.fill(
                           child: Opacity(
-                            opacity: 0.15 * opacity,
+                            opacity: opacity,
                             child: CustomPaint(
                               painter: KanjiVectorPainter(
                                 svgPaths: k.svgPaths,
                                 accentColor: accent,
-                                progress: 1.0,
+                                progress:
+                                    widget.node.currentStrokeIndex /
+                                    k.svgPaths.length,
                               ),
                             ),
                           ),
                         ),
 
-                      // Snapped strokes so far (neon green/accent)
-                      Positioned.fill(
-                        child: Opacity(
-                          opacity: opacity,
-                          child: CustomPaint(
-                            painter: KanjiVectorPainter(
-                              svgPaths: k.svgPaths,
-                              accentColor: accent,
-                              progress:
-                                  widget.node.currentStrokeIndex /
-                                  k.svgPaths.length,
+                        // Active user drawing stroke lines
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: opacity,
+                            child: CustomPaint(
+                              painter: _UserStrokePainter(
+                                points: _currentStrokePoints,
+                                accentColor: accent,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-
-                      // Active user drawing stroke lines
-                      Positioned.fill(
-                        child: Opacity(
-                          opacity: opacity,
-                          child: CustomPaint(
-                            painter: _UserStrokePainter(
-                              points: _currentStrokePoints,
-                              accentColor: accent,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

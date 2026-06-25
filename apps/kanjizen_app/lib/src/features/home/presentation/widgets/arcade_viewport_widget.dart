@@ -85,14 +85,15 @@ class ArcadeViewportWidget extends ConsumerWidget {
                     // Lane dividing lines
                     Row(
                       children: List.generate(lanesCount, (i) {
-                        return Container(
-                          width: laneWidth,
-                          height: height,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              right: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                width: 0.5,
+                        return Expanded(
+                          child: Container(
+                            height: height,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  width: 0.5,
+                                ),
                               ),
                             ),
                           ),
@@ -102,16 +103,21 @@ class ArcadeViewportWidget extends ConsumerWidget {
 
                     // Falling items
                     ...node.fallingEntities.map((entity) {
-                      final left = entity.lane * laneWidth;
-                      final top = entity.y * (height - 60);
+                      final left = (entity.lane * laneWidth).clamp(
+                        0.0,
+                        width - laneWidth,
+                      );
+                      final top = (entity.y * (height - 60)).clamp(
+                        0.0,
+                        height - 60,
+                      );
 
                       return Positioned(
                         left: left,
                         top: top,
-                        child: Container(
+                        child: SizedBox(
                           width: laneWidth,
                           height: 50,
-                          alignment: Alignment.center,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 4,
@@ -124,15 +130,18 @@ class ArcadeViewportWidget extends ConsumerWidget {
                               ),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(
-                              entity.concept,
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 9,
-                                fontFamily: 'Courier',
-                                fontWeight: FontWeight.bold,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                entity.concept,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 9,
+                                  fontFamily: 'Courier',
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -143,23 +152,24 @@ class ArcadeViewportWidget extends ConsumerWidget {
                     // DragTarget Overlays on Lanes
                     Row(
                       children: List.generate(lanesCount, (laneIdx) {
-                        return DragTarget<String>(
-                          onWillAcceptWithDetails: (details) => true,
-                          onAcceptWithDetails: (details) {
-                            ref
-                                .read(timelineProvider.notifier)
-                                .onArcadeFlick(details.data, laneIdx);
-                          },
-                          builder: (context, candidateData, rejectedData) {
-                            final isHovered = candidateData.isNotEmpty;
-                            return Container(
-                              width: laneWidth,
-                              height: height,
-                              color: isHovered
-                                  ? accent.withValues(alpha: 0.05)
-                                  : Colors.transparent,
-                            );
-                          },
+                        return Expanded(
+                          child: DragTarget<String>(
+                            onWillAcceptWithDetails: (details) => true,
+                            onAcceptWithDetails: (details) {
+                              ref
+                                  .read(timelineProvider.notifier)
+                                  .onArcadeFlick(details.data, laneIdx);
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              final isHovered = candidateData.isNotEmpty;
+                              return Container(
+                                height: height,
+                                color: isHovered
+                                    ? accent.withValues(alpha: 0.05)
+                                    : Colors.transparent,
+                              );
+                            },
+                          ),
                         );
                       }),
                     ),

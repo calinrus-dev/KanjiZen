@@ -27,14 +27,17 @@ class ExerciseReportWidget extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                node.title,
-                style: TextStyle(
-                  color: accent,
-                  fontFamily: 'Courier',
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+              Flexible(
+                child: Text(
+                  node.title,
+                  style: TextStyle(
+                    color: accent,
+                    fontFamily: 'Courier',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const Icon(
@@ -47,8 +50,11 @@ class ExerciseReportWidget extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Grid of performance statistics
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Wrap(
+            alignment: WrapAlignment.spaceAround,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 12,
             children: [
               _buildStatColumn(
                 'ACIERTO',
@@ -84,24 +90,31 @@ class ExerciseReportWidget extends ConsumerWidget {
                   onTap: () {
                     ref.read(timelineProvider.notifier).generateNextNode();
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: accent),
-                      borderRadius: BorderRadius.circular(2),
-                      color: accent.withValues(alpha: 0.05),
-                    ),
-                    child: Text(
-                      '[ SIGUIENTE EJERCICIO ]',
-                      style: TextStyle(
-                        color: accent,
-                        fontFamily: 'Courier',
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.85,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: accent),
+                        borderRadius: BorderRadius.circular(2),
+                        color: accent.withValues(alpha: 0.05),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '[ SIGUIENTE EJERCICIO ]',
+                          style: TextStyle(
+                            color: accent,
+                            fontFamily: 'Courier',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                        ),
                       ),
                     ),
                   ),

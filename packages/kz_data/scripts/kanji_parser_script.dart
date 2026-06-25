@@ -124,6 +124,9 @@ void main() async {
         .map((e) => e.innerText)
         .toList();
 
+    final jlptVal = jlpt != null ? int.tryParse(jlpt) ?? 0 : 0;
+    final gradeVal = grade != null ? int.tryParse(grade) ?? 0 : 0;
+
     kanjiSeedList.add({
       'character': literal,
       'onyomi': onyomi,
@@ -131,6 +134,8 @@ void main() async {
       'meanings': meanings,
       'radicals': radicals,
       'svgPaths': svgPaths,
+      'jlpt': jlptVal,
+      'joyo': gradeVal,
     });
   }
 

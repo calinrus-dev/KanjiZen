@@ -58,16 +58,21 @@ class CyberHistoryCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            title.toUpperCase(),
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.35),
-                              fontSize: 9,
-                              fontFamily: 'Courier',
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              title.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.35),
+                                fontSize: 9,
+                                fontFamily: 'Courier',
+                                letterSpacing: 1.5,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
@@ -124,6 +129,8 @@ class CyberHistoryCard extends StatelessWidget {
                                   children: [
                                     Text(
                                       entry.key.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: Colors.white.withValues(
                                           alpha: 0.25,
@@ -137,6 +144,8 @@ class CyberHistoryCard extends StatelessWidget {
                                     Text(
                                       entry.value,
                                       textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: accentColor.withValues(
                                           alpha: 0.85,
@@ -144,6 +153,9 @@ class CyberHistoryCard extends StatelessWidget {
                                         fontSize: 10,
                                         fontFamily: 'Courier',
                                         fontWeight: FontWeight.bold,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures()
+                                        ],
                                       ),
                                     ),
                                   ],

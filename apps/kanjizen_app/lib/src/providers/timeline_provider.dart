@@ -6,6 +6,7 @@ import 'package:kz_data/kz_data.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kanjizen_app/src/providers/game_provider.dart';
 import 'package:kanjizen_app/src/providers/kana_campaign_provider.dart';
+import 'package:kanjizen_app/src/features/campaign/presentation/kanji_level_matrix_screen.dart';
 import 'package:path_drawing/path_drawing.dart';
 
 // ─── MODELOS DE NODOS (FEEDNODE) ─────────────────────────────────────────────
@@ -304,6 +305,16 @@ class SessionTimelineState {
   final int lives;
   final bool isNeonErrorActive;
 
+  final KanaLevelModel? activeCampaignLevel;
+  final KanjiLevelModel? activeKanjiCampaignLevel;
+  final Map<String, Sm2State> campaignSm2States;
+  final int campaignCompletedCount;
+  final int campaignVolume;
+  final int campaignDurationSec;
+  final int campaignStartMs;
+  final int campaignErrors;
+  final int campaignSuccesses;
+
   SessionTimelineState({
     required this.activeSessionId,
     required this.history,
@@ -313,6 +324,15 @@ class SessionTimelineState {
     required this.hitRate,
     required this.lives,
     this.isNeonErrorActive = false,
+    this.activeCampaignLevel,
+    this.activeKanjiCampaignLevel,
+    this.campaignSm2States = const {},
+    this.campaignCompletedCount = 0,
+    this.campaignVolume = 0,
+    this.campaignDurationSec = 0,
+    this.campaignStartMs = 0,
+    this.campaignErrors = 0,
+    this.campaignSuccesses = 0,
   });
 
   SessionHistoryItem get activeSession =>
@@ -329,6 +349,16 @@ class SessionTimelineState {
     double? hitRate,
     int? lives,
     bool? isNeonErrorActive,
+    KanaLevelModel? activeCampaignLevel,
+    KanjiLevelModel? activeKanjiCampaignLevel,
+    Map<String, Sm2State>? campaignSm2States,
+    int? campaignCompletedCount,
+    int? campaignVolume,
+    int? campaignDurationSec,
+    int? campaignStartMs,
+    int? campaignErrors,
+    int? campaignSuccesses,
+    bool clearActiveCampaign = false,
   }) => SessionTimelineState(
     activeSessionId: activeSessionId ?? this.activeSessionId,
     history: history ?? this.history,
@@ -338,6 +368,15 @@ class SessionTimelineState {
     hitRate: hitRate ?? this.hitRate,
     lives: lives ?? this.lives,
     isNeonErrorActive: isNeonErrorActive ?? this.isNeonErrorActive,
+    activeCampaignLevel: clearActiveCampaign ? null : (activeCampaignLevel ?? this.activeCampaignLevel),
+    activeKanjiCampaignLevel: clearActiveCampaign ? null : (activeKanjiCampaignLevel ?? this.activeKanjiCampaignLevel),
+    campaignSm2States: campaignSm2States ?? this.campaignSm2States,
+    campaignCompletedCount: campaignCompletedCount ?? this.campaignCompletedCount,
+    campaignVolume: campaignVolume ?? this.campaignVolume,
+    campaignDurationSec: campaignDurationSec ?? this.campaignDurationSec,
+    campaignStartMs: campaignStartMs ?? this.campaignStartMs,
+    campaignErrors: campaignErrors ?? this.campaignErrors,
+    campaignSuccesses: campaignSuccesses ?? this.campaignSuccesses,
   );
 }
 
@@ -372,6 +411,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
   Timer? _deathClockTimer;
   Timer? _arcadeGameTimer;
+  Timer? _campaignTimer;
   int? _questionStartMs;
   int _arcadeTicks = 0;
 
@@ -379,6 +419,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
   void dispose() {
     _deathClockTimer?.cancel();
     _arcadeGameTimer?.cancel();
+    _campaignTimer?.cancel();
     super.dispose();
   }
 
@@ -444,13 +485,12 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     final nextNum = state.history.length + 1;
     final id = 'session_${nextNum.toString().padLeft(2, '0')}';
     final name = 'SESIÓN ${nextNum.toString().padLeft(2, '0')}';
-    final activeMode = ref.read(settingsProvider).engineMode;
 
     final newSession = SessionHistoryItem(
       id: id,
       name: name,
       nodes: [],
-      activeMode: activeMode,
+      activeMode: ref.read(settingsProvider).engineMode,
       createdAt: DateTime.now(),
     );
 
@@ -461,6 +501,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       avgMs: 0,
       hitRate: 0.0,
       lives: ref.read(settingsProvider).hardcoreLives,
+      clearActiveCampaign: true,
     );
 
     generateNextNode(forceNew: true);
@@ -507,8 +548,93 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
   void selectSession(String id) {
     _deathClockTimer?.cancel();
     _arcadeGameTimer?.cancel();
-    state = state.copyWith(activeSessionId: id);
+    _campaignTimer?.cancel();
+    state = state.copyWith(
+      activeSessionId: id,
+      clearActiveCampaign: true,
+    );
     generateNextNode(forceNew: true);
+  }
+
+  bool _isCampaignCompleted() {
+    if (state.activeCampaignLevel == null && state.activeKanjiCampaignLevel == null) return false;
+
+    // 1. Volume reached
+    if (state.campaignVolume > 0 && state.campaignCompletedCount >= state.campaignVolume) {
+      return true;
+    }
+
+    // 2. Timer expired
+    if (state.campaignDurationSec > 0) {
+      final elapsedSec = (DateTime.now().millisecondsSinceEpoch - state.campaignStartMs) / 1000;
+      if (elapsedSec >= state.campaignDurationSec) {
+        return true;
+      }
+    }
+
+    // 3. All characters liquidated (repetitions >= 3)
+    final targetChars = state.activeCampaignLevel?.targetCharacters ?? state.activeKanjiCampaignLevel?.requiredKanjis ?? [];
+    if (targetChars.isNotEmpty) {
+      bool allLiquidated = true;
+      for (final char in targetChars) {
+        final sm2 = state.campaignSm2States[char] ?? const Sm2State();
+        if (sm2.repetitions < 3) {
+          allLiquidated = false;
+          break;
+        }
+      }
+      if (allLiquidated) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void _completeKanaCampaign(KanaLevelModel level) {
+    final total = state.campaignCompletedCount;
+    final successes = state.campaignSuccesses;
+    final hitRate = total > 0 ? successes / total : 0.0;
+    ref.read(kanaCampaignProvider.notifier).evaluateSession(
+      levelId: level.levelId,
+      hitRate: hitRate,
+      maxTimePerCharMs: state.avgMs,
+      isHardcore: ref.read(settingsProvider).hardcoreMode,
+    );
+
+    _triggerReportNode(
+      'NIVEL ${level.levelId} COMPLETADO',
+      total,
+      state.campaignErrors,
+    );
+
+    state = state.copyWith(clearActiveCampaign: true);
+  }
+
+  void _completeKanjiCampaign(KanjiLevelModel level) {
+    final total = state.campaignCompletedCount;
+    final successes = state.campaignSuccesses;
+    final hitRate = total > 0 ? successes / total : 0.0;
+    final stars = hitRate >= 0.9 ? 3 : (hitRate >= 0.7 ? 2 : 1);
+
+    ref.read(kanjiLevelProvider.notifier).completeLevel(level.category, level.id, stars);
+    ref.read(kanjiLevelProvider.notifier).unlockKanjisInDb(level.requiredKanjis);
+
+    _triggerReportNode(
+      'NIVEL KANJI ${level.id} COMPLETADO',
+      total,
+      state.campaignErrors,
+    );
+
+    state = state.copyWith(clearActiveCampaign: true);
+  }
+
+  void _endCampaignDueToTime() {
+    if (state.activeCampaignLevel != null) {
+      _completeKanaCampaign(state.activeCampaignLevel!);
+    } else if (state.activeKanjiCampaignLevel != null) {
+      _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+    }
   }
 
   // Inicia un nivel de campaña inyectando un nodo especial en el feed
@@ -516,10 +642,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     ref.read(settingsProvider.notifier).setEngineMode(EngineMode.meca);
     _deathClockTimer?.cancel();
     _arcadeGameTimer?.cancel();
-
-    final timestamp = DateTime.now();
-    final id =
-        'campaign_level_${level.levelId}_${timestamp.millisecondsSinceEpoch}';
+    _campaignTimer?.cancel();
 
     // Congelar nodos previos
     final updatedNodes = List<FeedNode>.from(state.activeSession.nodes);
@@ -528,28 +651,61 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       updatedNodes[updatedNodes.length - 1] = lastNode.freeze();
     }
 
-    final targetChars = level.targetCharacters.map((char) {
-      final isKata = level.mode == 'katakana';
-      final seed = KanaSeedData.all
-          .where((s) => s.character == char)
-          .firstOrNull;
-      return GameCharacter(
-        kana: KanaModel(
-          character: char,
-          romaji: seed?.romaji ?? 'a',
-          isKatakana: isKata,
-          linkedKanaCharacter: '',
-          isDakutenOrHandakuten: false,
-          isUnlocked: true,
-        ),
-      );
-    }).toList();
-    targetChars.shuffle();
+    final settings = ref.read(settingsProvider);
+    final volume = settings.campaignSessionVolume;
+    final duration = settings.campaignSessionDuration;
+
+    final initialSm2 = <String, Sm2State>{};
+    for (final char in level.targetCharacters) {
+      initialSm2[char] = const Sm2State();
+    }
+
+    state = state.copyWith(
+      activeCampaignLevel: level,
+      activeKanjiCampaignLevel: null,
+      campaignSm2States: initialSm2,
+      campaignCompletedCount: 0,
+      campaignVolume: volume,
+      campaignDurationSec: duration,
+      campaignStartMs: DateTime.now().millisecondsSinceEpoch,
+      campaignErrors: 0,
+      campaignSuccesses: 0,
+      isPaused: false,
+    );
+
+    if (duration > 0) {
+      _campaignTimer = Timer(Duration(seconds: duration), () {
+        _endCampaignDueToTime();
+      });
+    }
+
+    // Generate first node
+    final firstGlyph = SrsEngineHelper.pickNextCharacter(
+      level.targetCharacters,
+      state.campaignSm2States,
+      '',
+    );
+
+    final isKata = level.mode == 'katakana';
+    final seed = KanaSeedData.all.where((s) => s.character == firstGlyph).firstOrNull;
+    final targetChar = GameCharacter(
+      kana: KanaModel(
+        character: firstGlyph,
+        romaji: seed?.romaji ?? 'a',
+        isKatakana: isKata,
+        linkedKanaCharacter: '',
+        isDakutenOrHandakuten: false,
+        isUnlocked: true,
+      ),
+    );
+
+    final timestamp = DateTime.now();
+    final id = 'campaign_node_${timestamp.millisecondsSinceEpoch}';
 
     final nextNode = MecaInputNode(
       id: id,
       timestamp: timestamp,
-      targetCharacters: targetChars,
+      targetCharacters: [targetChar],
       currentIndex: 0,
       inputText: '',
       inputState: InputState.neutral,
@@ -568,7 +724,109 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         }
         return s;
       }).toList(),
+    );
+
+    _questionStartMs = DateTime.now().millisecondsSinceEpoch;
+    _startDeathClock();
+  }
+
+  void startKanjiCampaignLevel(KanjiLevelModel level) {
+    ref.read(settingsProvider.notifier).setEngineMode(EngineMode.kanji);
+    _deathClockTimer?.cancel();
+    _arcadeGameTimer?.cancel();
+    _campaignTimer?.cancel();
+
+    // Congelar nodos previos
+    final updatedNodes = List<FeedNode>.from(state.activeSession.nodes);
+    if (updatedNodes.isNotEmpty) {
+      final lastNode = updatedNodes.last;
+      updatedNodes[updatedNodes.length - 1] = lastNode.freeze();
+    }
+
+    final settings = ref.read(settingsProvider);
+    final volume = settings.campaignSessionVolume;
+    final duration = settings.campaignSessionDuration;
+
+    final initialSm2 = <String, Sm2State>{};
+    for (final char in level.requiredKanjis) {
+      initialSm2[char] = const Sm2State();
+    }
+
+    state = state.copyWith(
+      activeCampaignLevel: null,
+      activeKanjiCampaignLevel: level,
+      campaignSm2States: initialSm2,
+      campaignCompletedCount: 0,
+      campaignVolume: volume,
+      campaignDurationSec: duration,
+      campaignStartMs: DateTime.now().millisecondsSinceEpoch,
+      campaignErrors: 0,
+      campaignSuccesses: 0,
       isPaused: false,
+    );
+
+    if (duration > 0) {
+      _campaignTimer = Timer(Duration(seconds: duration), () {
+        _endCampaignDueToTime();
+      });
+    }
+
+    // Generate first node
+    final firstGlyph = SrsEngineHelper.pickNextCharacter(
+      level.requiredKanjis,
+      state.campaignSm2States,
+      '',
+    );
+
+    final timestamp = DateTime.now();
+    final id = 'campaign_node_${timestamp.millisecondsSinceEpoch}';
+
+    _generateCampaignKanjiNode(firstGlyph, id, updatedNodes);
+  }
+
+  Future<void> _generateCampaignKanjiNode(
+    String glyph,
+    String id,
+    List<FeedNode> updatedNodes,
+  ) async {
+    final kanjis = await _repo.getAllKanjis();
+    final entity = kanjis.where((k) => k.character == glyph).firstOrNull;
+    final model = entity != null ? _toKanjiModel(entity) : KanjiModel(
+      character: glyph,
+      meanings: [glyph],
+      radicals: [],
+      isUnlocked: true,
+    );
+
+    FeedNode nextNode;
+    if (model.srsScore < 5.0) {
+      nextNode = KanjiProductionNode(
+        id: id,
+        timestamp: DateTime.now(),
+        kanji: model,
+        inputText: '',
+        inputState: InputState.neutral,
+        showHint: model.currentHitRate < 0.7,
+      );
+    } else {
+      nextNode = ConceptRecallNode(
+        id: id,
+        timestamp: DateTime.now(),
+        kanji: model,
+        inputText: '',
+        inputState: InputState.neutral,
+      );
+    }
+
+    updatedNodes.add(nextNode);
+
+    state = state.copyWith(
+      history: state.history.map((s) {
+        if (s.id == state.activeSessionId) {
+          return s.copyWith(nodes: updatedNodes, activeMode: EngineMode.kanji);
+        }
+        return s;
+      }).toList(),
     );
 
     _questionStartMs = DateTime.now().millisecondsSinceEpoch;
@@ -581,7 +839,6 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     _arcadeGameTimer?.cancel();
 
     final activeSession = state.activeSession;
-    final mode = activeSession.activeMode;
     final timestamp = DateTime.now();
     final id = 'node_${timestamp.millisecondsSinceEpoch}';
 
@@ -594,7 +851,100 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
     FeedNode nextNode;
 
-    switch (mode) {
+    // COMPROBAR SI ESTAMOS EN CAMPAÑA KANA
+    if (state.activeCampaignLevel != null) {
+      final level = state.activeCampaignLevel!;
+      String lastGlyph = '';
+      if (updatedNodes.isNotEmpty && updatedNodes.last is MecaInputNode) {
+        final lastMeca = updatedNodes.last as MecaInputNode;
+        if (lastMeca.targetCharacters.isNotEmpty) {
+          lastGlyph = lastMeca.targetCharacters.first.character;
+        }
+      }
+
+      final nextGlyph = SrsEngineHelper.pickNextCharacter(
+        level.targetCharacters,
+        state.campaignSm2States,
+        lastGlyph,
+      );
+
+      final isKata = level.mode == 'katakana';
+      final seed = KanaSeedData.all.where((s) => s.character == nextGlyph).firstOrNull;
+      final targetChar = GameCharacter(
+        kana: KanaModel(
+          character: nextGlyph,
+          romaji: seed?.romaji ?? 'a',
+          isKatakana: isKata,
+          linkedKanaCharacter: '',
+          isDakutenOrHandakuten: false,
+          isUnlocked: true,
+        ),
+      );
+
+      nextNode = MecaInputNode(
+        id: id,
+        timestamp: timestamp,
+        targetCharacters: [targetChar],
+        currentIndex: 0,
+        inputText: '',
+        inputState: InputState.neutral,
+        errors: 0,
+        streak: 0,
+        avgMs: 0,
+        hitRate: 1.0,
+      );
+    }
+    // COMPROBAR SI ESTAMOS EN CAMPAÑA KANJI
+    else if (state.activeKanjiCampaignLevel != null) {
+      final level = state.activeKanjiCampaignLevel!;
+      String lastGlyph = '';
+      if (updatedNodes.isNotEmpty) {
+        final last = updatedNodes.last;
+        if (last is KanjiProductionNode) {
+          lastGlyph = last.kanji.character;
+        } else if (last is ConceptRecallNode) {
+          lastGlyph = last.kanji.character;
+        }
+      }
+
+      final nextGlyph = SrsEngineHelper.pickNextCharacter(
+        level.requiredKanjis,
+        state.campaignSm2States,
+        lastGlyph,
+      );
+
+      final kanjis = await _repo.getAllKanjis();
+      final entity = kanjis.where((k) => k.character == nextGlyph).firstOrNull;
+      final model = entity != null ? _toKanjiModel(entity) : KanjiModel(
+        character: nextGlyph,
+        meanings: [nextGlyph],
+        radicals: [],
+        isUnlocked: true,
+      );
+
+      if (model.srsScore < 5.0) {
+        nextNode = KanjiProductionNode(
+          id: id,
+          timestamp: timestamp,
+          kanji: model,
+          inputText: '',
+          inputState: InputState.neutral,
+          showHint: model.currentHitRate < 0.7,
+        );
+      } else {
+        nextNode = ConceptRecallNode(
+          id: id,
+          timestamp: timestamp,
+          kanji: model,
+          inputText: '',
+          inputState: InputState.neutral,
+        );
+      }
+    }
+    // FLUJO NORMAL SIN CAMPAÑA
+    else {
+      final mode = activeSession.activeMode;
+      switch (mode) {
       case EngineMode.meca:
         final kanas = await _repo.getUnlockedKanas();
         final kanjis = await _repo.getAllKanjis();
@@ -861,6 +1211,7 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
           currentStrokeIndex: 0,
         );
         break;
+      }
     }
 
     updatedNodes.add(nextNode);
@@ -924,11 +1275,60 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
           : (lastNode as ConceptRecallNode).kanji.character;
       await _penalizeCharacter(character, true);
       _recordTelemetry(false, 3000);
-      await generateNextNode();
+      
+      if (state.activeKanjiCampaignLevel != null) {
+        final oldSm2 = state.campaignSm2States[character] ?? const Sm2State();
+        final newSm2 = SrsEngineHelper.calculateSm2(
+          oldState: oldSm2,
+          isCorrect: false,
+          responseMs: 3000,
+        );
+        final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+          ..[character] = newSm2;
+
+        state = state.copyWith(
+          campaignSm2States: updatedSm2States,
+          campaignErrors: state.campaignErrors + 1,
+          campaignCompletedCount: state.campaignCompletedCount + 1,
+        );
+
+        if (_isCampaignCompleted()) {
+          _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+        } else {
+          await generateNextNode();
+        }
+      } else {
+        await generateNextNode();
+      }
     } else if (lastNode is KanjiQuizNode && !lastNode.isFrozen) {
       await _penalizeCharacter(lastNode.kanji.character, true);
       _recordTelemetry(false, 3000);
-      await generateNextNode();
+      
+      if (state.activeKanjiCampaignLevel != null) {
+        final character = lastNode.kanji.character;
+        final oldSm2 = state.campaignSm2States[character] ?? const Sm2State();
+        final newSm2 = SrsEngineHelper.calculateSm2(
+          oldState: oldSm2,
+          isCorrect: false,
+          responseMs: 3000,
+        );
+        final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+          ..[character] = newSm2;
+
+        state = state.copyWith(
+          campaignSm2States: updatedSm2States,
+          campaignErrors: state.campaignErrors + 1,
+          campaignCompletedCount: state.campaignCompletedCount + 1,
+        );
+
+        if (_isCampaignCompleted()) {
+          _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+        } else {
+          await generateNextNode();
+        }
+      } else {
+        await generateNextNode();
+      }
     }
   }
 
@@ -974,11 +1374,38 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         DateTime.now().millisecondsSinceEpoch - _questionStartMs!,
       );
 
-      // Clean error status after 150ms
-      Future.delayed(const Duration(milliseconds: 150), () async {
-        if (!mounted) return;
-        _updateMecaInput(lastNode, '', InputState.neutral);
-      });
+      if (state.activeCampaignLevel != null) {
+        Future.delayed(const Duration(milliseconds: 150), () async {
+          if (!mounted) return;
+          final responseMs = DateTime.now().millisecondsSinceEpoch - _questionStartMs!;
+          final oldSm2 = state.campaignSm2States[targetChar.character] ?? const Sm2State();
+          final newSm2 = SrsEngineHelper.calculateSm2(
+            oldState: oldSm2,
+            isCorrect: false,
+            responseMs: responseMs,
+          );
+          final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+            ..[targetChar.character] = newSm2;
+
+          state = state.copyWith(
+            campaignSm2States: updatedSm2States,
+            campaignErrors: state.campaignErrors + 1,
+            campaignCompletedCount: state.campaignCompletedCount + 1,
+          );
+
+          if (_isCampaignCompleted()) {
+            _completeKanaCampaign(state.activeCampaignLevel!);
+          } else {
+            await generateNextNode();
+          }
+        });
+      } else {
+        // Clean error status after 150ms
+        Future.delayed(const Duration(milliseconds: 150), () async {
+          if (!mounted) return;
+          _updateMecaInput(lastNode, '', InputState.neutral);
+        });
+      }
     } else if (lastNode is KanjiProductionNode && !lastNode.isFrozen) {
       final k = lastNode.kanji;
       if (cleanInput.isEmpty) return;
@@ -1008,11 +1435,38 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       );
       _recordTelemetry(false, 1000);
 
-      Future.delayed(const Duration(milliseconds: 150), () async {
-        if (!mounted) return;
-        _updateKanjiProductionInput(lastNode, '', InputState.neutral);
-        await generateNextNode();
-      });
+      if (state.activeKanjiCampaignLevel != null) {
+        Future.delayed(const Duration(milliseconds: 150), () async {
+          if (!mounted) return;
+          final responseMs = DateTime.now().millisecondsSinceEpoch - _questionStartMs!;
+          final oldSm2 = state.campaignSm2States[k.character] ?? const Sm2State();
+          final newSm2 = SrsEngineHelper.calculateSm2(
+            oldState: oldSm2,
+            isCorrect: false,
+            responseMs: responseMs,
+          );
+          final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+            ..[k.character] = newSm2;
+
+          state = state.copyWith(
+            campaignSm2States: updatedSm2States,
+            campaignErrors: state.campaignErrors + 1,
+            campaignCompletedCount: state.campaignCompletedCount + 1,
+          );
+
+          if (_isCampaignCompleted()) {
+            _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+          } else {
+            await generateNextNode();
+          }
+        });
+      } else {
+        Future.delayed(const Duration(milliseconds: 150), () async {
+          if (!mounted) return;
+          _updateKanjiProductionInput(lastNode, '', InputState.neutral);
+          await generateNextNode();
+        });
+      }
     } else if (lastNode is ConceptRecallNode && !lastNode.isFrozen) {
       final k = lastNode.kanji;
       if (cleanInput.isEmpty) return;
@@ -1045,11 +1499,38 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
       );
       _recordTelemetry(false, 1000);
 
-      Future.delayed(const Duration(milliseconds: 150), () async {
-        if (!mounted) return;
-        _updateConceptRecallInput(lastNode, '', InputState.neutral);
-        await generateNextNode();
-      });
+      if (state.activeKanjiCampaignLevel != null) {
+        Future.delayed(const Duration(milliseconds: 150), () async {
+          if (!mounted) return;
+          final responseMs = DateTime.now().millisecondsSinceEpoch - _questionStartMs!;
+          final oldSm2 = state.campaignSm2States[k.character] ?? const Sm2State();
+          final newSm2 = SrsEngineHelper.calculateSm2(
+            oldState: oldSm2,
+            isCorrect: false,
+            responseMs: responseMs,
+          );
+          final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+            ..[k.character] = newSm2;
+
+          state = state.copyWith(
+            campaignSm2States: updatedSm2States,
+            campaignErrors: state.campaignErrors + 1,
+            campaignCompletedCount: state.campaignCompletedCount + 1,
+          );
+
+          if (_isCampaignCompleted()) {
+            _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+          } else {
+            await generateNextNode();
+          }
+        });
+      } else {
+        Future.delayed(const Duration(milliseconds: 150), () async {
+          if (!mounted) return;
+          _updateConceptRecallInput(lastNode, '', InputState.neutral);
+          await generateNextNode();
+        });
+      }
     }
   }
 
@@ -1115,29 +1596,36 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     await _updateCharacterProgress(targetChar, true, responseMs);
     _recordTelemetry(true, responseMs);
 
+    if (state.activeCampaignLevel != null) {
+      final oldSm2 = state.campaignSm2States[targetChar.character] ?? const Sm2State();
+      final newSm2 = SrsEngineHelper.calculateSm2(
+        oldState: oldSm2,
+        isCorrect: true,
+        responseMs: responseMs,
+      );
+      final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+        ..[targetChar.character] = newSm2;
+
+      state = state.copyWith(
+        campaignSm2States: updatedSm2States,
+        campaignSuccesses: state.campaignSuccesses + 1,
+        campaignCompletedCount: state.campaignCompletedCount + 1,
+      );
+
+      if (_isCampaignCompleted()) {
+        _completeKanaCampaign(state.activeCampaignLevel!);
+      } else {
+        await generateNextNode();
+      }
+      return;
+    }
+
     final nextIndex = node.currentIndex + 1;
     if (nextIndex >= node.targetCharacters.length) {
       // Completed block/report
       final isCampaign = node.id.startsWith('campaign_level_');
       if (isCampaign) {
-        final parts = node.id.split('_');
-        final levelId = int.tryParse(parts[2]) ?? 1;
-        final hitRate =
-            (node.targetCharacters.length - node.errors) /
-            node.targetCharacters.length;
-        ref
-            .read(kanaCampaignProvider.notifier)
-            .evaluateSession(
-              levelId: levelId,
-              hitRate: hitRate,
-              maxTimePerCharMs: state.avgMs,
-              isHardcore: ref.read(settingsProvider).hardcoreMode,
-            );
-        _triggerReportNode(
-          'NIVEL $levelId COMPLETADO',
-          node.targetCharacters.length,
-          node.errors,
-        );
+        // Fallback for legacy campaign blocks
       } else {
         // MECA es infinito — continúa sin mostrar pantalla de completado.
         await generateNextNode();
@@ -1165,6 +1653,31 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
 
   Future<void> _advanceMecaError(MecaInputNode node) async {
     final nextIndex = node.currentIndex + 1;
+
+    if (state.activeCampaignLevel != null) {
+      final targetChar = node.targetCharacters[node.currentIndex];
+      final oldSm2 = state.campaignSm2States[targetChar.character] ?? const Sm2State();
+      final newSm2 = SrsEngineHelper.calculateSm2(
+        oldState: oldSm2,
+        isCorrect: false,
+        responseMs: 3000,
+      );
+      final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+        ..[targetChar.character] = newSm2;
+
+      state = state.copyWith(
+        campaignSm2States: updatedSm2States,
+        campaignErrors: state.campaignErrors + 1,
+        campaignCompletedCount: state.campaignCompletedCount + 1,
+      );
+
+      if (_isCampaignCompleted()) {
+        _completeKanaCampaign(state.activeCampaignLevel!);
+      } else {
+        await generateNextNode();
+      }
+      return;
+    }
 
     final updatedNode = MecaInputNode(
       id: node.id,
@@ -1280,6 +1793,30 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     await _updateCharacterProgress(GameCharacter(kanji: k), true, responseMs);
     _recordTelemetry(true, responseMs);
 
+    if (state.activeKanjiCampaignLevel != null) {
+      final oldSm2 = state.campaignSm2States[k.character] ?? const Sm2State();
+      final newSm2 = SrsEngineHelper.calculateSm2(
+        oldState: oldSm2,
+        isCorrect: true,
+        responseMs: responseMs,
+      );
+      final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+        ..[k.character] = newSm2;
+
+      state = state.copyWith(
+        campaignSm2States: updatedSm2States,
+        campaignSuccesses: state.campaignSuccesses + 1,
+        campaignCompletedCount: state.campaignCompletedCount + 1,
+      );
+
+      if (_isCampaignCompleted()) {
+        _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+      } else {
+        await generateNextNode();
+      }
+      return;
+    }
+
     await generateNextNode();
   }
 
@@ -1328,7 +1865,32 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         _recordTelemetry(false, responseMs);
       }
 
-      await generateNextNode();
+      if (state.activeKanjiCampaignLevel != null) {
+        final k = lastNode.kanji;
+        final oldSm2 = state.campaignSm2States[k.character] ?? const Sm2State();
+        final newSm2 = SrsEngineHelper.calculateSm2(
+          oldState: oldSm2,
+          isCorrect: success,
+          responseMs: responseMs,
+        );
+        final updatedSm2States = Map<String, Sm2State>.from(state.campaignSm2States)
+          ..[k.character] = newSm2;
+
+        state = state.copyWith(
+          campaignSm2States: updatedSm2States,
+          campaignErrors: success ? state.campaignErrors : state.campaignErrors + 1,
+          campaignSuccesses: success ? state.campaignSuccesses + 1 : state.campaignSuccesses,
+          campaignCompletedCount: state.campaignCompletedCount + 1,
+        );
+
+        if (_isCampaignCompleted()) {
+          _completeKanjiCampaign(state.activeKanjiCampaignLevel!);
+        } else {
+          await generateNextNode();
+        }
+      } else {
+        await generateNextNode();
+      }
     }
   }
 

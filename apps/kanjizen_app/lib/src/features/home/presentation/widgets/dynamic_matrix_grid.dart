@@ -14,6 +14,7 @@ class DynamicMatrixGrid extends ConsumerWidget {
     required this.layoutMode,
     required this.useBold,
     required this.isNeonError,
+    this.availableHeight,
   });
 
   final List<GameCharacter> targetCharacters;
@@ -22,125 +23,138 @@ class DynamicMatrixGrid extends ConsumerWidget {
   final AppLayoutMode layoutMode;
   final bool useBold;
   final bool isNeonError;
+  final double? availableHeight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaQuery = MediaQuery.of(context);
-    final totalHeight = mediaQuery.size.height;
-    final keyboardHeight = mediaQuery.viewInsets.bottom;
-
-    // Viewport calculations
-    const headerHeight = 64.0;
-    const terminalHeight = 52.0;
-    final availableHeight =
-        (totalHeight - keyboardHeight - headerHeight - terminalHeight).clamp(
-          120.0,
-          totalHeight,
-        );
-
     final settings = ref.watch(settingsProvider);
     final scale = settings.gridScale;
 
-    double cellSize = 80.0;
-    if (scale == GridScale.sl) {
-      cellSize = availableHeight * 0.35;
-    } else if (scale == GridScale.l) {
-      cellSize = availableHeight * 0.50;
-    } else if (scale == GridScale.xl) {
-      cellSize = availableHeight * 0.65;
-    } else {
-      // AUTO mode
-      double hypoSize = availableHeight * 0.40;
-      final maxAvailableWidth = mediaQuery.size.width - 32.0;
-      if (hypoSize * targetCharacters.length > maxAvailableWidth * 0.90) {
-        hypoSize = (maxAvailableWidth * 0.90) / targetCharacters.length;
-      }
-      cellSize = hypoSize;
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final maxHeight = constraints.maxHeight;
 
-    // Final safety constraints
-    final maxAvailableWidth = mediaQuery.size.width - 32.0;
-    if (cellSize * targetCharacters.length > maxAvailableWidth) {
-      cellSize = maxAvailableWidth / targetCharacters.length;
-    }
-    // Clamp mínimo para legibilidad — pero si el clamp sube el tamaño y produce
-    // overflow de nuevo, lo corregimos después.
-    cellSize = cellSize.clamp(40.0, 220.0);
-    // Re-verificar ancho tras el clamp (clamp puede haber aumentado cellSize)
-    if (cellSize * targetCharacters.length > maxAvailableWidth) {
-      cellSize = maxAvailableWidth / targetCharacters.length;
-    }
+        final computedAvailableHeight = availableHeight ?? maxHeight;
 
-    final gridWidth = targetCharacters.length * cellSize;
-    final gridHeight = cellSize;
+        double cellSize = 80.0;
+        if (scale == GridScale.sl) {
+          cellSize = computedAvailableHeight * 0.35;
+        } else if (scale == GridScale.l) {
+          cellSize = computedAvailableHeight * 0.50;
+        } else if (scale == GridScale.xl) {
+          cellSize = computedAvailableHeight * 0.65;
+        } else {
+          // AUTO mode
+          double hypoSize = computedAvailableHeight * 0.40;
+          final usableWidth = maxWidth - 32.0;
+          if (hypoSize * targetCharacters.length > usableWidth * 0.90) {
+            hypoSize = (usableWidth * 0.90) / targetCharacters.length;
+          }
+          cellSize = hypoSize;
+        }
 
-    Widget gridWidget = SizedBox(
-      width: gridWidth,
-      height: gridHeight,
-      child: CustomPaint(
-        painter: TechnicalGridPainter(
-          color: const Color(
-            0xFF00FFFF,
-          ).withValues(alpha: isPaused ? 0.2 : 0.8),
-          columns: targetCharacters.length,
-          cellSize: cellSize,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(targetCharacters.length, (idx) {
-            final char = targetCharacters[idx];
-            final isActive = idx == currentIndex;
-            double opacity = 0.25;
-            if (isActive) opacity = isPaused ? 0.2 : 1.0;
+        // Final safety constraints
+        final usableWidth = maxWidth - 32.0;
+        if (cellSize * targetCharacters.length > usableWidth) {
+          cellSize = usableWidth / targetCharacters.length;
+        }
+        // Clamp mínimo para legibilidad — pero si el clamp sube el tamaño y produce
+        // overflow de nuevo, lo corregimos después.
+        cellSize = cellSize.clamp(40.0, 220.0);
+        // Re-verificar ancho tras el clamp (clamp puede haber aumentado cellSize)
+        if (cellSize * targetCharacters.length > usableWidth) {
+          cellSize = usableWidth / targetCharacters.length;
+        }
 
-            return SizedBox(
-              width: cellSize,
-              height: cellSize,
-              child: Center(
-                child: FractionallySizedBox(
-                  widthFactor: 0.95,
-                  heightFactor: 0.95,
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: Text(
-                      char.character,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: opacity),
-                        fontFamily: 'Courier',
-                        fontWeight: useBold ? FontWeight.bold : FontWeight.w100,
-                        height: 1.0,
+        final gridWidth = targetCharacters.length * cellSize;
+        final gridHeight = cellSize;
+
+        Widget gridWidget = SizedBox(
+          width: gridWidth,
+          height: gridHeight,
+          child: CustomPaint(
+            painter: TechnicalGridPainter(
+              color: const Color(
+                0xFF00FFFF,
+              ).withValues(alpha: isPaused ? 0.2 : 0.8),
+              columns: targetCharacters.length,
+              cellSize: cellSize,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(targetCharacters.length, (idx) {
+                final char = targetCharacters[idx];
+                final isActive = idx == currentIndex;
+                double opacity = 0.25;
+                if (isActive) opacity = isPaused ? 0.2 : 1.0;
+
+                return SizedBox(
+                  width: cellSize,
+                  height: cellSize,
+                  child: Center(
+                    child: FractionallySizedBox(
+                      widthFactor: 0.95,
+                      heightFactor: 0.95,
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        child: Text(
+                          char.character,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: opacity),
+                            fontFamily: 'Courier',
+                            fontWeight: useBold ? FontWeight.bold : FontWeight.w100,
+                            height: 1.0,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                );
+              }),
+            ),
+          ),
+        );
+
+        // Neon Error Animation: Blinks 3 times in 150ms between Cyan and Violento Red (#ff0000)
+        if (isNeonError) {
+          gridWidget = gridWidget
+              .animate(onPlay: (controller) => controller.repeat(max: 3))
+              .tint(color: const Color(0xFFFF0000), end: 1.0, duration: 25.ms)
+              .then()
+              .tint(color: const Color(0xFF00FFFF), end: 0.0, duration: 25.ms);
+        }
+
+        // Dynamic center container — clipBehavior previene overflow durante la
+        // transición de tamaño entre secuencias de diferente longitud.
+        // If sequence is very long, use horizontal scroll to avoid overflow.
+        final needsHorizontalScroll = gridWidth > maxWidth;
+
+        if (needsHorizontalScroll) {
+          return Center(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: gridWidth,
+                height: gridHeight,
+                child: gridWidget,
               ),
-            );
-          }),
-        ),
-      ),
-    );
+            ),
+          );
+        }
 
-    // Neon Error Animation: Blinks 3 times in 150ms between Cyan and Violento Red (#ff0000)
-    if (isNeonError) {
-      gridWidget = gridWidget
-          .animate(onPlay: (controller) => controller.repeat(max: 3))
-          .tint(color: const Color(0xFFFF0000), end: 1.0, duration: 25.ms)
-          .then()
-          .tint(color: const Color(0xFF00FFFF), end: 0.0, duration: 25.ms);
-    }
-
-    // Dynamic center container — clipBehavior previene overflow durante la
-    // transición de tamaño entre secuencias de diferente longitud.
-    return Center(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-        clipBehavior: Clip.hardEdge,
-        decoration: const BoxDecoration(),
-        width: gridWidth,
-        height: gridHeight,
-        child: gridWidget,
-      ),
+        return Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+            clipBehavior: Clip.hardEdge,
+            decoration: const BoxDecoration(),
+            width: gridWidth,
+            height: gridHeight,
+            child: gridWidget,
+          ),
+        );
+      },
     );
   }
 }

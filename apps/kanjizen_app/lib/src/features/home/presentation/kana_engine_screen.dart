@@ -11,93 +11,99 @@ class KanaEngineScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final accent = _getAccentColor(settings.accentColor);
 
-    return Column(
-      children: [
-        // Toggle Hiragana / Katakana / Mix
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _ToggleBtn(
-                'HIRAGANA',
-                settings.progressiveSystem == ProgressiveSystem.hira,
-                accent,
-                () {
-                  ref
-                      .read(settingsProvider.notifier)
-                      .setProgressiveSystem(ProgressiveSystem.hira);
-                },
-              ),
-              _ToggleBtn(
-                'MIX',
-                settings.progressiveSystem == ProgressiveSystem.both,
-                accent,
-                () {
-                  ref
-                      .read(settingsProvider.notifier)
-                      .setProgressiveSystem(ProgressiveSystem.both);
-                },
-              ),
-              _ToggleBtn(
-                'KATAKANA',
-                settings.progressiveSystem == ProgressiveSystem.kata,
-                accent,
-                () {
-                  ref
-                      .read(settingsProvider.notifier)
-                      .setProgressiveSystem(ProgressiveSystem.kata);
-                },
-              ),
-            ],
-          ),
-        ),
-        // Grid 20x5
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(24),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: 100, // 20x5
-            itemBuilder: (context, index) {
-              final level = index + 1;
-              final isUnlocked = level <= 3; // Placeholder progression
-              return Container(
-                decoration: BoxDecoration(
-                  color: isUnlocked
-                      ? accent.withValues(alpha: 0.1)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: isUnlocked
-                        ? accent.withValues(alpha: 0.5)
-                        : Colors.white.withValues(alpha: 0.1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gridExtent = (constraints.maxWidth / 5).clamp(60.0, 100.0);
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _ToggleBtn(
+                    'HIRAGANA',
+                    settings.progressiveSystem == ProgressiveSystem.hira,
+                    accent,
+                    () {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setProgressiveSystem(ProgressiveSystem.hira);
+                    },
                   ),
-                  borderRadius: BorderRadius.circular(4),
+                  _ToggleBtn(
+                    'MIX',
+                    settings.progressiveSystem == ProgressiveSystem.both,
+                    accent,
+                    () {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setProgressiveSystem(ProgressiveSystem.both);
+                    },
+                  ),
+                  _ToggleBtn(
+                    'KATAKANA',
+                    settings.progressiveSystem == ProgressiveSystem.kata,
+                    accent,
+                    () {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setProgressiveSystem(ProgressiveSystem.kata);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(24),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: gridExtent,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.0,
                 ),
-                child: Center(
-                  child: isUnlocked
-                      ? Text(
-                          '$level',
-                          style: TextStyle(
-                            color: accent,
-                            fontFamily: 'Courier',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : Icon(
-                          Icons.lock,
-                          size: 16,
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                itemCount: 100,
+                itemBuilder: (context, index) {
+                  final level = index + 1;
+                  final isUnlocked = level <= 3;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: isUnlocked
+                          ? accent.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: isUnlocked
+                            ? accent.withValues(alpha: 0.5)
+                            : Colors.white.withValues(alpha: 0.1),
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: isUnlocked
+                          ? Text(
+                              '$level',
+                              style: TextStyle(
+                                color: accent,
+                                fontFamily: 'Courier',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : Icon(
+                              Icons.lock,
+                              size: 16,
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

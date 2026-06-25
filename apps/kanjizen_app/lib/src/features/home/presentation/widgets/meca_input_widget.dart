@@ -7,8 +7,9 @@ import 'package:kanjizen_app/src/providers/timeline_provider.dart';
 import 'package:kanjizen_app/src/features/home/presentation/widgets/dynamic_matrix_grid.dart';
 
 class MecaInputWidget extends ConsumerWidget {
-  const MecaInputWidget({super.key, required this.node});
+  const MecaInputWidget({super.key, required this.node, this.availableHeight});
   final MecaInputNode node;
+  final double? availableHeight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,6 +50,7 @@ class MecaInputWidget extends ConsumerWidget {
       useBold: useBold,
       isNeonError: timelineState
           .isNeonErrorActive, // Asumiendo que añadiremos esto al timelineProvider
+      availableHeight: availableHeight,
     );
   }
 

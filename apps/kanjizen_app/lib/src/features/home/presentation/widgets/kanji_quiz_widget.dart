@@ -41,36 +41,49 @@ class KanjiQuizWidget extends ConsumerWidget {
     // Active interactive view
     final opacity = timelineState.isPaused ? 0.2 : 1.0;
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.help_outline, size: 36, color: Colors.white30),
-          const SizedBox(height: 16),
-          Text(
-            node.kanji.meanings.first.toUpperCase(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: opacity),
-              fontSize: 36,
-              fontFamily: 'Courier',
-              letterSpacing: 4,
-              fontWeight: useBold ? FontWeight.bold : FontWeight.w300,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.help_outline, size: 36, color: Colors.white30),
+                  const SizedBox(height: 16),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      node.kanji.meanings.first.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: opacity),
+                        fontSize: 36,
+                        fontFamily: 'Courier',
+                        letterSpacing: 4,
+                        fontWeight: useBold ? FontWeight.bold : FontWeight.w300,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'SELECCIONA EL RADICAL CORRECTO ABAJO',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: accent.withValues(alpha: 0.5),
+                      fontSize: 11,
+                      fontFamily: 'Courier',
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'SELECCIONA EL RADICAL CORRECTO ABAJO',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: accent.withValues(alpha: 0.5),
-              fontSize: 11,
-              fontFamily: 'Courier',
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

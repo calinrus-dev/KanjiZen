@@ -33,7 +33,17 @@ class DatabaseInitializerService {
 
   static Future<bool> isKanjiSeeded() async {
     final isar = await openDb();
-    return await isar.kanjiEntitys.count() > 0;
+    final count = await isar.kanjiEntitys.count();
+    if (count == 0) return false;
+
+    final hasProperData = await isar.kanjiEntitys.filter().joyoGreaterThan(0).or().jlptGreaterThan(0).count() > 0;
+    if (!hasProperData) {
+      await isar.writeTxn(() async {
+        await isar.kanjiEntitys.clear();
+      });
+      return false;
+    }
+    return true;
   }
 
   static Future<void> seedInBackground() async {

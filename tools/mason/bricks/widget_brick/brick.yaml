@@ -1,0 +1,11 @@
+name: widget_brick
+description: Generates a single Cyber-Zen responsive widget with LayoutBuilder and elastic constraints.
+version: 0.1.0+1
+environment:
+  mason: ">=0.1.0-dev.52 <0.2.0"
+
+vars:
+  name:
+    type: string
+    description: The name of the widget in snake_case (e.g. kanji_card, session_tile)
+    prompt: "What is the widget name?"

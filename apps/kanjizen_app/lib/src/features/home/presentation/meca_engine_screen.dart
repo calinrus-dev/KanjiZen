@@ -7,6 +7,9 @@ import 'package:kanjizen_app/src/providers/game_provider.dart';
 import 'package:kz_domain/kz_domain.dart';
 import 'package:kanjizen_app/src/features/home/presentation/meca_context_settings.dart';
 
+// MOTOR LEGACY — reemplazado por EngineSelectorScreen + TimelineNotifier.
+// No está referenciado en el router; se conserva temporalmente para referencia
+// y se eliminará en la próxima iteración de limpieza.
 class MecaEngineScreen extends ConsumerStatefulWidget {
   const MecaEngineScreen({super.key});
 

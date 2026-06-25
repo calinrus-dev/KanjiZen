@@ -162,6 +162,7 @@ class _KanjiSrsScreenState extends ConsumerState<KanjiSrsScreen> {
 
     return Scaffold(
       backgroundColor: CyberTheme.bgObsidian,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -201,94 +202,123 @@ class _KanjiSrsScreenState extends ConsumerState<KanjiSrsScreen> {
         .read(kanjiSrsProvider.notifier)
         .getPhaseFor(kanji.srsScore);
 
-    // Tiembla y parpadea en rojo si hay error
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Fase: ${phase.name.toUpperCase()} (Score: ${kanji.srsScore.toStringAsFixed(1)})',
-                style: const TextStyle(
-                  color: CyberTheme.textNeutral,
-                  fontSize: 10,
-                  fontFamily: 'Courier',
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 16),
+                    Text(
+                      'Fase: ${phase.name.toUpperCase()} (Score: ${kanji.srsScore.toStringAsFixed(1)})',
+                      style: const TextStyle(
+                        color: CyberTheme.textNeutral,
+                        fontSize: 10,
+                        fontFamily: 'Courier',
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Flexible(
+                      child: _buildPrompt(kanji, phase, constraints),
+                    ),
+                    const SizedBox(height: 16),
+                    if (phase == KanjiSrsPhase.initial)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          kanji.meanings.join(', '),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: CyberTheme.textNeutral.withValues(alpha: 0.5),
+                            fontSize: (constraints.maxWidth * 0.035).clamp(12.0, 16.0),
+                            fontFamily: 'Courier',
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    if (phase != KanjiSrsPhase.discriminatory)
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: RayitaInput(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          inputState: _inputState,
+                          hint: phase == KanjiSrsPhase.inversion
+                              ? 'Dibuja el Kanji...'
+                              : 'Escribe lectura...',
+                          onChanged: (val) => _onInputChanged(val, kanji, phase),
+                        ),
+                      )
+                    else
+                      _buildMultipleChoicePanel(kanji, constraints),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-
-              if (phase == KanjiSrsPhase.initial ||
-                  phase == KanjiSrsPhase.withdrawal)
-                Text(
-                  kanji.character,
-                  style: const TextStyle(
-                    color: CyberTheme.defaultAccent,
-                    fontSize: 80,
-                    fontWeight: FontWeight.w300,
-                  ),
-                )
-              else if (phase == KanjiSrsPhase.inversion ||
-                  phase == KanjiSrsPhase.discriminatory)
-                Text(
-                  kanji.meanings.isNotEmpty
-                      ? kanji.meanings.first.toUpperCase()
-                      : '???',
-                  style: const TextStyle(
-                    color: CyberTheme.defaultAccent,
-                    fontSize: 32,
-                    fontFamily: 'Courier',
-                    letterSpacing: 4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-              const SizedBox(height: 16),
-
-              if (phase == KanjiSrsPhase.initial)
-                Text(
-                  kanji.meanings.join(', '),
-                  style: TextStyle(
-                    color: CyberTheme.textNeutral.withValues(alpha: 0.5),
-                    fontSize: 14,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-
-              const Spacer(),
-
-              if (phase != KanjiSrsPhase.discriminatory)
-                Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: RayitaInput(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    inputState: _inputState,
-                    hint: phase == KanjiSrsPhase.inversion
-                        ? 'Dibuja el Kanji...'
-                        : 'Escribe lectura...',
-                    onChanged: (val) => _onInputChanged(val, kanji, phase),
-                  ),
-                )
-              else
-                _buildMultipleChoicePanel(kanji),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildMultipleChoicePanel(KanjiModel kanji) {
+  Widget _buildPrompt(
+    KanjiModel kanji,
+    KanjiSrsPhase phase,
+    BoxConstraints constraints,
+  ) {
+    if (phase == KanjiSrsPhase.initial || phase == KanjiSrsPhase.withdrawal) {
+      final fontSize = (constraints.maxWidth * 0.25).clamp(48.0, 120.0);
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          kanji.character,
+          style: TextStyle(
+            color: CyberTheme.defaultAccent,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w300,
+          ),
+        ),
+      );
+    }
+
+    // inversion / discriminatory
+    final fontSize = (constraints.maxWidth * 0.08).clamp(18.0, 36.0);
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        kanji.meanings.isNotEmpty
+            ? kanji.meanings.first.toUpperCase()
+            : '???',
+        style: TextStyle(
+          color: CyberTheme.defaultAccent,
+          fontSize: fontSize,
+          fontFamily: 'Courier',
+          letterSpacing: 4,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildMultipleChoicePanel(KanjiModel kanji, BoxConstraints constraints) {
     final options = ref
         .read(kanjiSrsProvider.notifier)
         .generateDiscriminatoryOptions(kanji);
 
+    final cardSize = (constraints.maxWidth / 4).clamp(56.0, 96.0);
+
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(24.0),
       child: Wrap(
-        spacing: 16,
-        runSpacing: 16,
+        spacing: 12,
+        runSpacing: 12,
         alignment: WrapAlignment.center,
         children: options.map((opt) {
           return InkWell(
@@ -299,16 +329,19 @@ class _KanjiSrsScreenState extends ConsumerState<KanjiSrsScreen> {
                 ref.read(kanjiSrsProvider.notifier).recordError(kanji);
               }
             },
+            borderRadius: BorderRadius.circular(8),
             child: Container(
-              width: 80,
-              height: 80,
+              width: cardSize,
+              height: cardSize,
               decoration: BoxDecoration(
                 border: Border.all(
                   color: CyberTheme.defaultAccent.withValues(alpha: 0.3),
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Center(
+              alignment: Alignment.center,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
                 child: Text(
                   opt,
                   style: const TextStyle(

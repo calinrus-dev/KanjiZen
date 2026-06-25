@@ -45,13 +45,9 @@ class _RayitaInputState extends State<RayitaInput> {
   @override
   void didUpdateWidget(RayitaInput old) {
     super.didUpdateWidget(old);
-    if (widget.inputState != old.inputState) {
-      if (widget.inputState == InputState.success ||
-          widget.inputState == InputState.error) {
-        widget.controller.clear();
-        widget.focusNode?.requestFocus();
-      }
-    }
+    // La limpieza del controlador y la gestión del foco son responsabilidad del
+    // consumidor (DynamicTerminalBar). Este átomo solo reacciona visualmente al
+    // cambio de estado para evitar carreras de buffer.
   }
 
   @override

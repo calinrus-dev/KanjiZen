@@ -54,7 +54,21 @@ class GridCell extends StatelessWidget {
                 ),
               ),
             ),
-            if (!isLocked)
+            if (isLocked)
+              const Positioned(
+                top: 2,
+                right: 2,
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Icon(
+                    Icons.lock_outline,
+                    size: 10,
+                    color: Colors.white24,
+                  ),
+                ),
+              )
+            else
               Positioned(
                 bottom: 3,
                 right: 3,

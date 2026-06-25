@@ -814,8 +814,8 @@ class _InventoryDashboardScreenState
         SliverPadding(
           padding: const EdgeInsets.all(8),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 12,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 36,
               crossAxisSpacing: 2,
               mainAxisSpacing: 2,
               childAspectRatio: 1.0,
@@ -909,8 +909,8 @@ class _InventoryDashboardScreenState
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 48,
                   crossAxisSpacing: 6,
                   mainAxisSpacing: 6,
                   childAspectRatio: 1.2,
@@ -962,8 +962,8 @@ class _InventoryDashboardScreenState
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 48,
                   crossAxisSpacing: 6,
                   mainAxisSpacing: 6,
                   childAspectRatio: 1.2,
@@ -1042,8 +1042,8 @@ class _InventoryDashboardScreenState
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 56,
                   crossAxisSpacing: 6,
                   mainAxisSpacing: 6,
                   childAspectRatio: 1.0,
@@ -1247,7 +1247,10 @@ class _InventoryDashboardScreenState
   Widget _buildKanjiOrgToggles(Color accent) {
     return Padding(
       padding: const EdgeInsets.only(left: 12.0, top: 8.0, bottom: 4.0),
-      child: Row(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           const Text(
             'ESTRUCTURA:',
@@ -1257,7 +1260,6 @@ class _InventoryDashboardScreenState
               fontSize: 9,
             ),
           ),
-          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => setState(() => _kanjiOrg = KanjiOrganization.grade),
             child: Text(
@@ -1270,7 +1272,6 @@ class _InventoryDashboardScreenState
               ),
             ),
           ),
-          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => setState(() => _kanjiOrg = KanjiOrganization.jlpt),
             child: Text(
@@ -1344,22 +1345,29 @@ class _InventoryDashboardScreenState
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Text(
-              k.character,
-              style: TextStyle(
-                color: k.isUnlocked ? Colors.white : Colors.white10,
-                fontSize: 18,
-                fontWeight: k.isUnlocked ? FontWeight.normal : FontWeight.w100,
+            Opacity(
+              opacity: k.isUnlocked ? 1.0 : 0.15,
+              child: Text(
+                k.character,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
             ),
             if (!k.isUnlocked)
               const Positioned(
                 top: 2,
                 right: 2,
-                child: Icon(
-                  Icons.lock_outline,
-                  size: 8,
-                  color: Colors.white12,
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Icon(
+                    Icons.lock_outline,
+                    size: 10,
+                    color: Colors.white24,
+                  ),
                 ),
               ),
           ],
@@ -1387,30 +1395,31 @@ class _InventoryDashboardScreenState
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Kanji vector shape
+            // Kanji vector shape — siempre visible, atenuado si bloqueado
             Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: k.svgPaths.isNotEmpty
-                    ? CustomPaint(
-                        painter: KanjiVectorPainter(
-                          svgPaths: k.svgPaths,
-                          accentColor: k.isUnlocked ? accent : Colors.red,
-                          progress: 1.0,
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          k.character,
-                          style: TextStyle(
-                            color: k.isUnlocked
-                                ? Colors.white
-                                : Colors.white10,
-                            fontFamily: 'Courier',
-                            fontSize: 22,
+                child: Opacity(
+                  opacity: k.isUnlocked ? 1.0 : 0.15,
+                  child: k.svgPaths.isNotEmpty
+                      ? CustomPaint(
+                          painter: KanjiVectorPainter(
+                            svgPaths: k.svgPaths,
+                            accentColor: k.isUnlocked ? accent : Colors.red,
+                            progress: 1.0,
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            k.character,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Courier',
+                              fontSize: 22,
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
             ),
             // Locked / Unlocked badge or indicators
@@ -1418,10 +1427,14 @@ class _InventoryDashboardScreenState
               Positioned(
                 top: 2,
                 right: 2,
-                child: Icon(
-                  Icons.lock,
-                  size: 8,
-                  color: Colors.red.withValues(alpha: 0.3),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Icon(
+                    Icons.lock,
+                    size: 10,
+                    color: Colors.red.withValues(alpha: 0.5),
+                  ),
                 ),
               )
             else ...[

@@ -117,13 +117,14 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [15, 30, 50].map((v) {
                       final active = selectedVolume == v;
                       return GestureDetector(
                         onTap: () => setState(() => selectedVolume = v),
                         child: Container(
-                          margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             border: Border.all(color: active ? accent : Colors.white10),
@@ -154,7 +155,9 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       (0, 'SIN LÍMITE'),
                       (60, '1 MIN'),
@@ -165,7 +168,6 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                       return GestureDetector(
                         onTap: () => setState(() => selectedDuration = pair.$1),
                         child: Container(
-                          margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             border: Border.all(color: active ? accent : Colors.white10),
@@ -186,7 +188,10 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                     }).toList(),
                   ),
                   const SizedBox(height: 20),
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       const Text(
                         'PUNTUACIÓN MÁXIMA: ',
@@ -197,6 +202,7 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                         ),
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: List.generate(3, (starIdx) {
                           return Icon(
                             starIdx < displayStars ? Icons.star : Icons.star_border,
@@ -351,8 +357,8 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                       vertical: 8,
                     ),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 5,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 72,
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
                           childAspectRatio: 0.9,
@@ -362,84 +368,83 @@ class _KanaLevelMatrixScreenState extends ConsumerState<KanaLevelMatrixScreen> {
                       final level = filtered[index];
                       final isUnlocked = level.isUnlocked;
                       final isBoss = level.isBoss;
-
-                      Widget content;
-                      if (!isUnlocked) {
-                        content = Container(
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05),
-                            ),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.lock_outline,
-                            size: 14,
-                            color: Colors.white24,
-                          ),
-                        );
-                      } else {
-                        final isHardcore = settings.hardcoreMode;
-                        final displayStars = isHardcore
-                            ? level.redStars
-                            : level.stars;
-                        final starColor = isHardcore
-                            ? CyberTheme.errorRed
-                            : accent;
-
-                        content = Container(
-                          decoration: BoxDecoration(
-                            color: isBoss
-                                ? CyberTheme.errorRed.withValues(alpha: 0.05)
-                                : accent.withValues(alpha: 0.03),
-                            border: Border.all(
-                              color: isBoss
-                                  ? CyberTheme.errorRed.withValues(alpha: 0.5)
-                                  : accent.withValues(alpha: 0.2),
-                              width: isBoss ? 1.5 : 1.0,
-                            ),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                isBoss ? 'BOSS' : 'L${level.levelId}',
-                                style: TextStyle(
-                                  color: isBoss ? CyberTheme.errorRed : accent,
-                                  fontFamily: 'Courier',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(3, (starIdx) {
-                                  return Icon(
-                                    starIdx < displayStars
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    color: starIdx < displayStars
-                                        ? starColor
-                                        : starColor.withValues(alpha: 0.15),
-                                    size: 9,
-                                  );
-                                }),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
+                      final isHardcore = settings.hardcoreMode;
+                      final displayStars = isHardcore ? level.redStars : level.stars;
+                      final starColor = isHardcore ? CyberTheme.errorRed : accent;
 
                       return GestureDetector(
-                        onTap: () {
-                          if (!isUnlocked) return;
-                          _showLevelPreview(context, level, accent);
-                        },
-                        child: content,
+                        onTap: isUnlocked
+                            ? () => _showLevelPreview(context, level, accent)
+                            : null,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isUnlocked
+                                ? (isBoss
+                                    ? CyberTheme.errorRed.withValues(alpha: 0.05)
+                                    : accent.withValues(alpha: 0.03))
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isUnlocked
+                                  ? (isBoss
+                                      ? CyberTheme.errorRed.withValues(alpha: 0.5)
+                                      : accent.withValues(alpha: 0.2))
+                                  : Colors.white.withValues(alpha: 0.05),
+                              width: isBoss && isUnlocked ? 1.5 : 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Opacity(
+                                opacity: isUnlocked ? 1.0 : 0.15,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      isBoss ? 'BOSS' : 'L${level.levelId}',
+                                      style: TextStyle(
+                                        color: isBoss ? CyberTheme.errorRed : accent,
+                                        fontFamily: 'Courier',
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(3, (starIdx) {
+                                        return Icon(
+                                          starIdx < displayStars
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          color: starIdx < displayStars
+                                              ? starColor
+                                              : starColor.withValues(alpha: 0.15),
+                                          size: 9,
+                                        );
+                                      }),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!isUnlocked)
+                                const Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: Icon(
+                                      Icons.lock_outline,
+                                      size: 10,
+                                      color: Colors.white24,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       );
                     },
                   );

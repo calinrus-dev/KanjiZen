@@ -234,13 +234,14 @@ class _KanjiLevelMatrixScreenState
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [15, 30, 50].map((v) {
                       final active = selectedVolume == v;
                       return GestureDetector(
                         onTap: () => setState(() => selectedVolume = v),
                         child: Container(
-                          margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             border: Border.all(color: active ? accent : Colors.white10),
@@ -271,7 +272,9 @@ class _KanjiLevelMatrixScreenState
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       (0, 'SIN LÍMITE'),
                       (60, '1 MIN'),
@@ -282,7 +285,6 @@ class _KanjiLevelMatrixScreenState
                       return GestureDetector(
                         onTap: () => setState(() => selectedDuration = pair.$1),
                         child: Container(
-                          margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             border: Border.all(color: active ? accent : Colors.white10),
@@ -453,8 +455,8 @@ class _KanjiLevelMatrixScreenState
                   : GridView.builder(
                       padding: const EdgeInsets.all(20),
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 5,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 72,
                             crossAxisSpacing: 8,
                             mainAxisSpacing: 8,
                             childAspectRatio: 0.9,
@@ -462,68 +464,80 @@ class _KanjiLevelMatrixScreenState
                       itemCount: levels.length,
                       itemBuilder: (ctx, i) {
                         final level = levels[i];
-                        if (!level.isUnlocked) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.05),
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.lock_outline,
-                              size: 14,
-                              color: Colors.white24,
-                            ),
-                          );
-                        }
                         return GestureDetector(
-                          onTap: () =>
-                              _showLevelPreview(context, level, accent),
+                          onTap: level.isUnlocked
+                              ? () => _showLevelPreview(context, level, accent)
+                              : null,
                           child: Container(
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: accent.withValues(alpha: 0.3),
+                                color: level.isUnlocked
+                                    ? accent.withValues(alpha: 0.3)
+                                    : Colors.white.withValues(alpha: 0.05),
                               ),
-                              color: accent.withValues(alpha: 0.03),
+                              color: level.isUnlocked
+                                  ? accent.withValues(alpha: 0.03)
+                                  : Colors.transparent,
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            child: Stack(
+                              alignment: Alignment.center,
                               children: [
-                                Text(
-                                  'L${level.id}',
-                                  style: TextStyle(
-                                    color: accent,
-                                    fontFamily: 'Courier',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                                Opacity(
+                                  opacity: level.isUnlocked ? 1.0 : 0.15,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'L${level.id}',
+                                        style: TextStyle(
+                                          color: accent,
+                                          fontFamily: 'Courier',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: List.generate(
+                                          3,
+                                          (si) => Icon(
+                                            si < level.starsEarned
+                                                ? Icons.star
+                                                : Icons.star_border,
+                                            color: si < level.starsEarned
+                                                ? accent
+                                                : accent.withValues(alpha: 0.2),
+                                            size: 10,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        level.subCategory,
+                                        style: TextStyle(
+                                          color: accent.withValues(alpha: 0.5),
+                                          fontFamily: 'Courier',
+                                          fontSize: 9,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: List.generate(
-                                    3,
-                                    (si) => Icon(
-                                      si < level.starsEarned
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      color: si < level.starsEarned
-                                          ? accent
-                                          : accent.withValues(alpha: 0.2),
-                                      size: 10,
+                                if (!level.isUnlocked)
+                                  const Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: Icon(
+                                        Icons.lock_outline,
+                                        size: 10,
+                                        color: Colors.white24,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  level.subCategory,
-                                  style: TextStyle(
-                                    color: accent.withValues(alpha: 0.5),
-                                    fontFamily: 'Courier',
-                                    fontSize: 9,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -822,38 +836,46 @@ class _AcquisitionEngineState extends ConsumerState<_AcquisitionEngine>
                             _playStrokeAnimation();
                             _playTts();
                           },
-                          child: Container(
-                            width: 160,
-                            height: 160,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _showError
-                                    ? CyberTheme.errorRed
-                                    : accent.withValues(alpha: 0.4),
-                                width: _showError ? 2 : 1,
-                              ),
-                              color: _showError
-                                  ? CyberTheme.errorRed.withValues(alpha: 0.05)
-                                  : Colors.white.withValues(alpha: 0.01),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth * 0.55,
+                              maxHeight: constraints.maxHeight * 0.45,
                             ),
-                            child: kanji.svgPaths.isNotEmpty
-                                ? CustomPaint(
-                                    painter: KanjiVgPainter(
-                                      svgPaths: kanji.svgPaths,
-                                      progress: _strokeProgress,
-                                      strokeColor: Colors.white,
-                                    ),
-                                  )
-                                : Center(
-                                    child: Text(
-                                      kanji.character,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 100,
-                                        height: 1.0,
-                                      ),
-                                    ),
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: _showError
+                                        ? CyberTheme.errorRed
+                                        : accent.withValues(alpha: 0.4),
+                                    width: _showError ? 2 : 1,
                                   ),
+                                  color: _showError
+                                      ? CyberTheme.errorRed.withValues(alpha: 0.05)
+                                      : Colors.white.withValues(alpha: 0.01),
+                                ),
+                                child: kanji.svgPaths.isNotEmpty
+                                    ? CustomPaint(
+                                        painter: KanjiVgPainter(
+                                          svgPaths: kanji.svgPaths,
+                                          progress: _strokeProgress,
+                                          strokeColor: Colors.white,
+                                        ),
+                                      )
+                                    : FittedBox(
+                                        fit: BoxFit.contain,
+                                        child: Text(
+                                          kanji.character,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 100,
+                                            height: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),

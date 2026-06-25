@@ -1,3 +1,7 @@
 bricks:
   feature_brick:
     path: bricks/feature_brick
+  widget_brick:
+    path: bricks/widget_brick
+  provider_brick:
+    path: bricks/provider_brick

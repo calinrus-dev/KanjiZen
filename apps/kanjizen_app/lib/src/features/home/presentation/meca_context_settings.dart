@@ -168,7 +168,12 @@ class MecaContextSettings extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 16),
-          control,
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: control,
+            ),
+          ),
         ],
       ),
     );

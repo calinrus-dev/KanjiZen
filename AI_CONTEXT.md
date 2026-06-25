@@ -22,6 +22,7 @@ Reglas visuales:
 - Los acentos del usuario se leen desde `settingsProvider`.
 - Los organisms deben usar `Theme.of(context).extension<CyberThemeExtension>()?.accentColor ?? CyberTheme.defaultAccent`.
 - `flutter_animate` se usa para micro-interacciones de UI; no introducir `AnimationController` manual salvo para animación explícita de trazos SVG.
+- **NUEVO**: los layouts deben ser elásticos. Está prohibido usar anchos/altos estáticos en contenedores principales, diálogos y menús. Usar `LayoutBuilder`, `Expanded`, `Flexible`, `Wrap`, `FittedBox` y proporciones de `MediaQuery`.
 
 ## 3. ARQUITECTURA DEL MONOREPO
 El proyecto está dividido por capas DDD:
@@ -47,15 +48,19 @@ Componentes clave actuales:
 - `ProfileDrawer` abre ajustes ampliados en un bottom sheet.
 - `CharacterDetailSheet` muestra KanjiVG animado y botón TTS.
 - `InventoryDashboardScreen` usa acento dinámico y autoexpande kanji al filtrar.
-- `TimelineProvider` hace que MECA sea infinito en sesiones normales.
+- `TimelineProvider` orquesta todos los motores (MECA, KANJI, QUIZ, ARCADE, WRITE) y aplica reset completo al cambiar de modo.
 
 ## 5. REGLAS ESTRUCTURALES Y UI
-1. `RayitaInput` debe seguir siendo minimalista: solo borde inferior y `shakeX` en error mediante `flutter_animate`.
+1. `RayitaInput` debe seguir siendo minimalista: solo borde inferior y `shakeX` en error mediante `flutter_animate`. **No debe limpiar su propio controller ni pedir foco.**
 2. `KanjiVectorPainter` procesa rutas SVG de KanjiVG con `path_drawing`, admite modo estático y animado, e incluye `canvas.save()`/`canvas.restore()`.
 3. `KanjiVgPainter` acepta `Animation<double>` y se usa cuando hay una animación de trazos real.
-4. Los layouts sensibles al teclado deben usar `LayoutBuilder` y `viewInsets.bottom` para desplazar el input sin mover el canvas central.
+4. Los layouts sensibles al teclado deben usar `LayoutBuilder` y `resizeToAvoidBottomInset: true`. El canvas central debe vivir dentro de `Flexible`/`Expanded` para ceder espacio al teclado.
 5. Cualquier cambio en `kz_data` o `kz_domain` requiere regenerar código con `dart run build_runner build --delete-conflicting-outputs`.
 6. Freezed v3+ debe declararse como `abstract class Modelo with _$Modelo`.
+7. **NUEVO - Cero cross-talk**: al cambiar de modo, `TimelineNotifier.setEngineMode` cancela timers, limpia campañas y resetea métricas de sesión. Nunca se debe arrastrar estado de un motor a otro.
+8. **NUEVO - Feed finito**: el historial de nodos congelados está limitado a `kMaxFrozenNodes = 50`. No renderizar más nodos de los necesarios.
+9. **NUEVO - Input buffer**: `DynamicTerminalBar` es el único propietario del `TextEditingController` y del foco. Limpia síncronamente al detectar `success`/`error` y al cambiar de nodo.
+10. **NUEVO - Rejillas responsivas**: usar `SliverGridDelegateWithMaxCrossAxisExtent` en lugar de `crossAxisCount` fijo. Las celdas bloqueadas muestran el glifo atenuado + icono de candado pequeño (`16×16`) en esquina.
 
 ## 6. MOTOR SRS Y VALIDACIÓN
 ### InputValidator
@@ -82,7 +87,7 @@ Componentes clave actuales:
 ## 7. PANTALLAS Y MODOS ACTUALES
 - MECA es infinito en sesiones normales; solo hay pantalla de reporte en campañas y game over hardcore.
 - `KanaLevelMatrixScreen` existe como mapa de niveles kana.
-- `KanjiLevelMatrixScreen` es la pantalla nueva de adquisición kanji en dos fases.
+- `KanjiLevelMatrixScreen` es la pantalla de adquisición kanji en dos fases.
 - `InventoryDashboardScreen` y `ProfileDrawer` ya forman parte de la navegación principal.
 - `SettingsState` ya incluye `strokeWidth` y `strokeAnimationSpeed` además de audio, animación de trazos, hardcore y ajustes de grid.
 
@@ -108,14 +113,17 @@ Componentes clave actuales:
 - lottie `3.3.1`
 
 ## 10. ESTADO VERIFICADO DEL PROYECTO
-- `dart analyze` -> `No issues found`
-- `flutter run -d 11f2efaf` -> compiló, instaló y arrancó en Realme RMX5010 con Impeller/Vulkan
-- El último estado confirmado del repositorio está limpio y sincronizado con `origin/main`
+- `flutter analyze` -> `No issues found`
+- `melos run test` -> `All tests passed`
+- Último dispositivo físico ejecutado: Realme RMX5010 (Android 15)
+- El repositorio sincronizado con `origin/main`
 
 ## 11. REGLA DE TRABAJO PARA AGENTES
 - Cambiar lo mínimo necesario.
 - No reescribir áreas fuera del alcance.
 - Si un cambio toca `kz_data` o `kz_domain`, validar regeneración de código y análisis estático.
+- **NUEVO**: todo layout nuevo debe pasar la prueba de 320 dp de ancho sin `RenderFlex overflow`.
+- **NUEVO**: todo motor nuevo debe integrarse con `TimelineNotifier` y respetar el ciclo de reset de `setEngineMode`.
 
 ---
 Actúa de forma pragmática, con latencia cero, y omite boilerplate innecesario en las respuestas.

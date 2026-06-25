@@ -92,8 +92,8 @@ class _InventorySectionState extends State<InventorySection> {
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 48,
                 crossAxisSpacing: 4,
                 mainAxisSpacing: 4,
                 childAspectRatio: 1,

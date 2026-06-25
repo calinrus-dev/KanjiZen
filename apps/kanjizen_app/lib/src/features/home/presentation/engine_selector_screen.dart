@@ -498,7 +498,12 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
             ),
           ),
           const SizedBox(width: 16),
-          control,
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: control,
+            ),
+          ),
         ],
       ),
     );
@@ -529,6 +534,27 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
         ),
         child: StrokeValidationWidget(node: node),
       );
+    } else if (node is ExerciseReportNode) {
+      return ExerciseReportWidget(node: node);
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// Renderiza un nodo congelado del historial. No recibe altura de canvas
+  /// porque los nodos históricos usan layouts compactos autónomos.
+  Widget _buildFrozenNodeWidget(FeedNode node) {
+    if (node is MecaInputNode) {
+      return MecaInputWidget(node: node);
+    } else if (node is KanjiProductionNode) {
+      return KanjiProductionWidget(productionNode: node);
+    } else if (node is ConceptRecallNode) {
+      return KanjiProductionWidget(recallNode: node);
+    } else if (node is KanjiQuizNode) {
+      return KanjiQuizWidget(node: node);
+    } else if (node is LaneCollisionViewportNode) {
+      return ArcadeViewportWidget(node: node);
+    } else if (node is StrokeValidationNode) {
+      return StrokeValidationWidget(node: node);
     } else if (node is ExerciseReportNode) {
       return ExerciseReportWidget(node: node);
     }
@@ -640,12 +666,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
 
                   return Stack(
                     children: [
-                      SingleChildScrollView(
+                      CustomScrollView(
                         controller: _scrollController,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Padding(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Text(
                                 telemetryStr,
@@ -657,42 +682,19 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                 ),
                               ),
                             ),
-
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.only(
-                                top: 12,
-                                bottom: 24,
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.only(top: 12, bottom: 24),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (ctx, i) => _buildFrozenNodeWidget(frozenNodes[i]),
+                                childCount: frozenNodes.length,
                               ),
-                              itemCount: frozenNodes.length,
-                              itemBuilder: (ctx, i) {
-                                final node = frozenNodes[i];
-                                if (node is MecaInputNode) {
-                                  return MecaInputWidget(node: node);
-                                } else if (node is KanjiProductionNode) {
-                                  return KanjiProductionWidget(
-                                    productionNode: node,
-                                  );
-                                } else if (node is ConceptRecallNode) {
-                                  return KanjiProductionWidget(
-                                    recallNode: node,
-                                  );
-                                } else if (node is KanjiQuizNode) {
-                                  return KanjiQuizWidget(node: node);
-                                } else if (node is LaneCollisionViewportNode) {
-                                  return ArcadeViewportWidget(node: node);
-                                } else if (node is StrokeValidationNode) {
-                                  return StrokeValidationWidget(node: node);
-                                } else if (node is ExerciseReportNode) {
-                                  return ExerciseReportWidget(node: node);
-                                }
-                                return const SizedBox.shrink();
-                              },
                             ),
-
-                            if (activeNode != null)
-                              Padding(
+                          ),
+                          if (activeNode != null)
+                            SliverToBoxAdapter(
+                              child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 8,
@@ -725,17 +727,18 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                   ],
                                 ),
                               ),
-
-                            if (activeNode != null)
-                              Container(
+                            ),
+                          if (activeNode != null)
+                            SliverToBoxAdapter(
+                              child: Container(
                                 padding: const EdgeInsets.only(bottom: 16),
                                 child: _buildActiveNodeWidget(
                                   activeNode,
                                   localCanvasHeight,
                                 ),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
 
                       if (timelineState.isPaused && !_showSnapToBottom)

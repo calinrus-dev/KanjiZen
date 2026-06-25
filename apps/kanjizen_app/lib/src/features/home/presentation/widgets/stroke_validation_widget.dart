@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +55,8 @@ class _StrokeValidationWidgetState
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-        final canvasSize = (availableHeight * 0.7).clamp(140.0, 220.0);
+        final canvasSize = (min(constraints.maxWidth, availableHeight) * 0.6)
+            .clamp(120.0, 280.0);
 
         return SingleChildScrollView(
           child: Center(

@@ -2,7 +2,7 @@ name: feature_brick
 description: Generates the standard structure of a feature in kanjizen_app (presentation, providers, domain).
 version: 0.1.0+1
 environment:
-  mason: ">=0.1.0-dev.52 <0.1.0"
+  mason: ">=0.1.0-dev.52 <0.2.0"
 
 vars:
   name:

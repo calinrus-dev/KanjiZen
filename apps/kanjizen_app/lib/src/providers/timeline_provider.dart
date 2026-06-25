@@ -11,6 +11,10 @@ import 'package:path_drawing/path_drawing.dart';
 
 // ─── MODELOS DE NODOS (FEEDNODE) ─────────────────────────────────────────────
 
+/// Límite de nodos congelados en el feed. Evita acumulación de widgets zombis
+/// y estabiliza el consumo de memoria en sesiones largas.
+const int kMaxFrozenNodes = 50;
+
 abstract class FeedNode {
   final String id;
   final DateTime timestamp;
@@ -443,8 +447,12 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
     ref.read(settingsProvider.notifier).setEngineMode(mode);
     _deathClockTimer?.cancel();
     _arcadeGameTimer?.cancel();
+    _campaignTimer?.cancel();
+    _questionStartMs = null;
+    _arcadeTicks = 0;
 
-    // Actualizar el modo de la sesión activa
+    // Actualizar el modo de la sesión activa y purgar estado del modo anterior
+    // para evitar cross-talk (racha, ms, accuracy, vidas, campaña activa).
     state = state.copyWith(
       history: state.history.map((s) {
         if (s.id == state.activeSessionId) {
@@ -452,6 +460,13 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         }
         return s;
       }).toList(),
+      streak: 0,
+      avgMs: 0,
+      hitRate: 0.0,
+      lives: ref.read(settingsProvider).hardcoreLives,
+      isPaused: false,
+      isNeonErrorActive: false,
+      clearActiveCampaign: true,
     );
 
     generateNextNode(forceNew: true);
@@ -1222,6 +1237,13 @@ class TimelineNotifier extends StateNotifier<SessionTimelineState> {
         );
         break;
       }
+    }
+
+    // Purgar nodos congelados antiguos antes de añadir el nuevo activo.
+    // Se conserva siempre el nodo activo (último) y un máximo de congelados.
+    if (updatedNodes.length >= kMaxFrozenNodes) {
+      const keepFrozen = kMaxFrozenNodes - 1;
+      updatedNodes.removeRange(0, updatedNodes.length - keepFrozen);
     }
 
     updatedNodes.add(nextNode);

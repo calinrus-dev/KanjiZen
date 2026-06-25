@@ -18,7 +18,7 @@
 [![Dart](https://img.shields.io/badge/Dart-3.8.1+-0175C2?logo=dart&style=flat-square)](https://dart.dev)
 [![Melos](https://img.shields.io/badge/Melos-Monorepo-blueviolet?style=flat-square)](https://melos.invertase.dev)
 [![Database](https://img.shields.io/badge/Database-Isar%20NoSQL-blue?style=flat-square)](https://isar.dev)
-[![Performance](https://img.shields.io/badge/Render-Impeller%20%7C%20120FPS-brightgreen?style=flat-square)](https://github.com/calinrus-dev/KanjiZen)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square)](.github/workflows/ci.yml)
 
 ---
 
@@ -70,57 +70,53 @@ graph TD
     kz_domain --> kz_core
 ```
 
-*   [kanjizen_app](file:///c:/Users/calin/Desktop/KanjiZen/apps/kanjizen_app): Entry points, routing (GoRouter), state orchestration (Riverpod), and terminal view layers.
-*   [kz_ui_components](file:///c:/Users/calin/Desktop/KanjiZen/packages/kz_ui_components): Atomic widgets (`RayitaInput`, custom glassmorphic panels) and vector painters rendering stroke paths at a raw OpenGL/Impeller level.
-*   [kz_domain](file:///c:/Users/calin/Desktop/KanjiZen/packages/kz_domain): Pure Dart layer containing business rules. Agnastic of Flutter, database schemas, or frameworks.
-*   [kz_data](file:///c:/Users/calin/Desktop/KanjiZen/packages/kz_data): Low-level persistence operations. Local database initializers, seeding scripts, and data serialization.
-*   [kz_core](file:///c:/Users/calin/Desktop/KanjiZen/packages/kz_core): Base theme constants, global exceptions, and agnastic abstract contracts.
+*   [kanjizen_app](apps/kanjizen_app): Entry points, routing (GoRouter), state orchestration (Riverpod), and terminal view layers.
+*   [kz_ui_components](packages/kz_ui_components): Atomic widgets (`RayitaInput`, custom glassmorphic panels) and vector painters rendering stroke paths at a raw OpenGL/Impeller level.
+*   [kz_domain](packages/kz_domain): Pure Dart layer containing business rules. Agnostic of Flutter, database schemas, or frameworks.
+*   [kz_data](packages/kz_data): Low-level persistence operations. Local database initializers, seeding scripts, and data serialization.
+*   [kz_core](packages/kz_core): Base theme constants, global exceptions, and agnostic abstract contracts.
 
 ---
 
-## 🛠️ The Multimodal Arsenal (The 9 Engines)
+## 🛠️ The Multimodal Arsenal
 
-The main core selector hosts nine independent cognitive engines designed to attack different neural pathways:
+The main core selector hosts independent cognitive engines designed to attack different neural pathways:
 
-```
-/home
-  ├── FLICK   → Flick Engine (Kana tactile layout)
-  ├── KANJI   → Kanji Matrix (Adaptive progressive scaffolding)
-  ├── QUIZ    → Fine Discrimination (High-speed distractor matrix)
-  ├── TYPIST  → Typing Engine (Infinite word assembly)
-  ├── ARCADE  → Kinetic Survival (Falling collision viewport)
-  ├── WRITE   → Stroke Validation (Vector path checker)
-  ├── VOICE   → Auditory Decoder (Acoustic comprehension)
-  ├── GRAM    → Syntax Synthesizer (Agglutinative structural math)
-  └── AI      → Adaptive Conductor (LLM context orchestra)
-```
+| Engine | Route | Purpose |
+|---|---|---|
+| **MECA** | `/home` | Typing engine: infinite Kana/Kanji input with Death Clock. |
+| **KANJI** | `/home` | Progressive scaffolding: exposure → active recall of readings. |
+| **QUIZ** | `/home` | Fine discrimination matrix with radical-based distractors. |
+| **ARCADE** | `/home` | Kinetic survival: drag-and-drop falling concepts. |
+| **WRITE** | `/home` | Stroke validation against KanjiVG vector paths. |
+| **Kana Levels** | `/home/kanas` | Structured campaign map for Hiragana/Katakana. |
+| **Kanji Levels** | `/home/kanjis` | Structured campaign map for Kanji acquisition. |
+| **Inventory** | `/home/inventory` | Dense grid of all unlocked/locked characters. |
 
-### 1. FLICK Engine (Kana Matrix)
-Replicates the native 12-key Japanese numeric layout. Supports 4-directional gestural flicks to execute Dakuten, Handakuten, and contracted sounds (Yōon). It conditions your thumb to perform muscle-memory text input.
+---
 
-### 2. KANJI Matrix (Progressive Scaffolding)
-A double-phase acquisition model. Phase I guides you through passive exposure (animated vector strokes + TTS audio). Phase II systemically strips all phonetic and visual assists, demanding active recall of Onyomi/Kunyomi readings.
+## 🧱 Architecture Rules (Post-Refactor v2.0)
 
-### 3. QUIZ Engine (Fine Discrimination)
-High-speed choice matrix inspired by tournament layouts. Feeds distractors dynamically based on radical groupings (similar-looking kanjis) to refine visual sorting reflexes and resolve character confusion.
+The following rules are non-negotiable and enforced by code review:
 
-### 4. TYPIST Engine (Infinite Typing Flow)
-Procedural text typist that generates words, phrases, and text segments compiled exclusively from your active unlocked vocabulary. Demands pure output typing without autocomplete buffers.
+1. **Zero Cross-Talk Between Engines**
+   - `TimelineNotifier.setEngineMode` resets timers, clears active campaigns, and zeroes session metrics (`streak`, `avgMs`, `hitRate`, `lives`).
+   - The frozen-node feed is capped at `50` items to prevent zombie widget accumulation.
+   - `DynamicTerminalBar` clears local input buffers synchronously on node/mode change.
 
-### 5. ARCADE Engine (Kinetic Survival)
-Falling obstacle gameplay. English/Spanish concepts drop from lanes at an accelerating velocity. Drag and drop the corresponding active Kanji block into the lane to disintegrate the block before impact.
+2. **Elastic Layouts Only**
+   - No static `width`/`height` in main containers, dialogs, or menus.
+   - Use `LayoutBuilder`, `Expanded`, `Flexible`, `Wrap`, `FittedBox`, and `MediaQuery` proportions.
+   - Keyboard-aware screens use `resizeToAvoidBottomInset: true` and scrollable content.
 
-### 6. WRITE Engine (Vector Validation)
-Draw directly on the screen. The custom canvas analyzes the touch coordinates (`Offset` vectors) against the target KanjiVG stroke database, verifying starting points, stroke paths, and angular direction within configurable tolerance thresholds (e.g. 15°-35°).
+3. **Responsive Dense Grids**
+   - `SliverGridDelegateWithMaxCrossAxisExtent` replaces fixed `crossAxisCount`.
+   - Locked cells always show the glyph dimmed + a `16×16` corner lock icon. The glyph is never hidden by the lock.
 
-### 7. VOICE Engine (Auditory Decoder)
-Plays short native audio snippets. The user must reconstruct the heard words/characters instantly in Romaji or Kana, breaking auditory blindspots and mapping phonetic units directly.
-
-### 8. GRAM Engine (Syntax Synthesizer)
-Structural mapping cards focusing on verbal inflections, agglutinative conjugations, and particle syntax math. Eliminates translation delays by transforming grammatical structures into direct patterns.
-
-### 9. AI Engine (Adaptive Conductor)
-Integrates with external LLM processors to parse response latency, error patterns, and SRS histories. Rewrites session prompts in real time to target the user's specific cognitive flaws.
+4. **Synchronous Input Buffer Cleanup**
+   - `RayitaInput` is a pure visual atom; it never clears its own controller.
+   - `DynamicTerminalBar` owns the controller/focus and purges text instantly on `success`/`error`.
+   - `VirtualFlickKeyboard` includes backspace and respects `enabled` states.
 
 ---
 
@@ -146,6 +142,7 @@ The `TierCalculator` computes the character's mastery tier using this binary log
 
 *   Flutter SDK `≥ 3.32.5`
 *   Dart SDK `≥ 3.8.1`
+*   Android SDK + a device or emulator (for mobile execution)
 *   [Melos](https://melos.invertase.dev) activated globally:
     ```bash
     dart pub global activate melos
@@ -183,6 +180,59 @@ All standard lifecycle tasks are wrapped in Melos workspace commands:
 | `melos run build_runner:watch` | Starts code generation in watch mode. |
 | `melos run mason:get` | Downloads dependencies for local bricks. |
 | `melos run mason:make` | Generates a new Clean Architecture feature directory. |
+
+### Run on a Physical Device
+
+1. Enable **USB debugging** on your Android phone.
+2. Connect it via USB and authorize the computer.
+3. Verify detection:
+   ```bash
+   flutter devices
+   ```
+4. Run the app:
+   ```bash
+   cd apps/kanjizen_app
+   flutter run
+   ```
+   Or target a specific device:
+   ```bash
+   flutter run -d <device-id>
+   ```
+
+For release builds:
+```bash
+cd apps/kanjizen_app
+flutter run --release
+```
+
+---
+
+## 🧱 Code Generation with Mason
+
+This repo ships local Mason bricks under `tools/mason/`.
+
+```bash
+# From repo root
+cd tools/mason
+mason get
+mason make feature_brick
+```
+
+Available bricks:
+
+| Brick | Generates |
+|---|---|
+| `feature_brick` | Full feature folder: `domain/`, `providers/`, `presentation/`, `widgets/`. |
+| `widget_brick`  | A single Cyber-Zen responsive widget with `LayoutBuilder`. |
+| `provider_brick`| A Riverpod `@riverpod` notifier with reset/dispose boilerplate. |
+
+---
+
+## ✅ Verified State
+
+- `flutter analyze` → **No issues found**
+- `melos run test` → **All tests passed**
+- Target device tested: Realme RMX5010 (Android 15, Impeller/Vulkan)
 
 ---
 

@@ -55,6 +55,19 @@ scripts:
     run: cd tools/mason && mason get
     description: Fetch and retrieve Mason dependencies for local bricks.
 
+  mason:make:feature:
+    run: cd tools/mason && mason make feature_brick
+    description: Generate standard feature directories using feature_brick.
+
+  mason:make:widget:
+    run: cd tools/mason && mason make widget_brick
+    description: Generate a single responsive widget using widget_brick.
+
+  mason:make:provider:
+    run: cd tools/mason && mason make provider_brick
+    description: Generate a Riverpod notifier using provider_brick.
+
+  # Deprecated alias kept for backwards compatibility.
   mason:make:
     run: cd tools/mason && mason make feature_brick
     description: Generate standard feature directories using feature_brick.

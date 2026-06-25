@@ -241,50 +241,67 @@ class _Cell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget content;
-    if (!isUnlocked) {
-      content = Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        alignment: Alignment.center,
-        child: const Icon(Icons.lock, color: Colors.grey, size: 16),
-      );
-    } else {
-      content = Container(
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.1),
-          border: Border.all(color: accent.withValues(alpha: 0.3)),
+          color: isUnlocked
+              ? accent.withValues(alpha: 0.1)
+              : Colors.grey.withValues(alpha: 0.1),
+          border: Border.all(
+            color: isUnlocked
+                ? accent.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.2),
+          ),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            Center(
-              child: Text(
-                character,
-                style: TextStyle(color: accent, fontSize: 24),
-              ),
-            ),
-            Positioned(
-              top: 2,
-              right: 2,
-              child: Text(
-                tier,
-                style: TextStyle(
-                  color: accent,
-                  fontSize: 10,
-                  fontFamily: 'Courier',
-                  fontWeight: FontWeight.bold,
+            Opacity(
+              opacity: isUnlocked ? 1.0 : 0.2,
+              child: Center(
+                child: Text(
+                  character,
+                  style: TextStyle(
+                    color: isUnlocked ? accent : Colors.white,
+                    fontSize: 24,
+                  ),
                 ),
               ),
             ),
+            if (isUnlocked)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Text(
+                  tier,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 10,
+                    fontFamily: 'Courier',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            else
+              const Positioned(
+                top: 2,
+                right: 2,
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Icon(
+                    Icons.lock,
+                    size: 10,
+                    color: Colors.white24,
+                  ),
+                ),
+              ),
           ],
         ),
-      );
-    }
-
-    return GestureDetector(onTap: onTap, child: content);
+      ),
+    );
   }
 }
 

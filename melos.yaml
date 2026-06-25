@@ -11,31 +11,60 @@ command:
     usePubspecOverrides: true
 
 scripts:
-  # --- Análisis ---
+  # --- Analysis & Linting ---
   analyze:
     exec: dart analyze .
-    description: Analiza todo el código del workspace.
+    description: Analyze all Dart packages in the workspace.
 
-  # --- Generación de código (Freezed, Riverpod, Isar) ---
+  format:
+    exec: dart format .
+    description: Format all Dart packages in the workspace.
+
+  format:check:
+    exec: dart format --output=none --set-exit-if-changed .
+    description: Check formatting of all packages without editing.
+
+  lint:
+    run: melos run format:check && melos run analyze
+    description: Run all lint and style validation checks.
+
+  # --- Dependency Management ---
+  pub:get:
+    exec: flutter pub get
+    description: Install pub dependencies in all workspace packages.
+
+  upgrade:
+    exec: flutter pub upgrade
+    description: Upgrade pub dependencies in all packages.
+
+  # --- Code Generation (Freezed, Riverpod, Isar) ---
   build_runner:
     exec: dart run build_runner build --delete-conflicting-outputs
-    description: Ejecuta build_runner masivo (Freezed, Riverpod, Isar).
+    description: Run code generation build for all packages.
+
+  build_runner:clean:
+    exec: dart run build_runner clean
+    description: Clean build_runner cache across all packages.
 
   build_runner:watch:
     exec: dart run build_runner watch --delete-conflicting-outputs
-    description: Ejecuta build_runner en modo watch.
+    description: Run build_runner in watch mode for all packages.
 
-  # --- Tests ---
+  # --- Mason Bricks ---
+  mason:get:
+    run: cd tools/mason && mason get
+    description: Fetch and retrieve Mason dependencies for local bricks.
+
+  mason:make:
+    run: cd tools/mason && mason make feature_brick
+    description: Generate standard feature directories using feature_brick.
+
+  # --- Testing ---
   test:
     exec: flutter test
-    description: Ejecuta pruebas unitarias en todos los paquetes.
+    description: Run unit and widget test suites for all packages.
 
-  # --- Formateo ---
-  format:
-    exec: dart format .
-    description: Formatea todo el código del workspace.
-
-  # --- Limpieza ---
+  # --- Clean Up ---
   clean:
     exec: flutter clean
-    description: Limpia artefactos de build en todos los paquetes.
+    description: Run clean command on all Flutter packages in the workspace.

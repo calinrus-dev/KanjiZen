@@ -28,7 +28,6 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
     with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   bool _showSnapToBottom = false;
-  bool _pausedByScroll = false;
 
   @override
   void initState() {
@@ -70,11 +69,15 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     }
   }
 
@@ -497,27 +500,29 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
     );
   }
 
-  double _calculateActiveGridHeight(
-    List<FeedNode> nodes,
-    double canvasHeight,
-    AppLayoutMode layoutMode,
-  ) {
-    if (nodes.isEmpty) return 0.0;
-    final lastNode = nodes.last;
-    if (lastNode is! MecaInputNode) return 0.0;
-    final targetCharacters = lastNode.targetCharacters;
-
-    double cellSize = 80.0;
-    if (targetCharacters.length == 1 || layoutMode == AppLayoutMode.syllable) {
-      cellSize = canvasHeight * 0.40;
-    } else {
-      cellSize = canvasHeight * 0.22;
-      final maxAvailableWidth = MediaQuery.of(context).size.width - 32.0;
-      if (cellSize * targetCharacters.length > maxAvailableWidth) {
-        cellSize = maxAvailableWidth / targetCharacters.length;
-      }
+  Widget _buildActiveNodeWidget(FeedNode node, double localCanvasHeight) {
+    if (node is MecaInputNode) {
+      return MecaInputWidget(node: node);
+    } else if (node is KanjiProductionNode) {
+      return KanjiProductionWidget(productionNode: node);
+    } else if (node is ConceptRecallNode) {
+      return KanjiProductionWidget(recallNode: node);
+    } else if (node is KanjiQuizNode) {
+      return KanjiQuizWidget(node: node);
+    } else if (node is LaneCollisionViewportNode) {
+      return SizedBox(
+        height: (localCanvasHeight * 0.55).clamp(280.0, 400.0),
+        child: ArcadeViewportWidget(node: node),
+      );
+    } else if (node is StrokeValidationNode) {
+      return SizedBox(
+        height: (localCanvasHeight * 0.5).clamp(240.0, 320.0),
+        child: StrokeValidationWidget(node: node),
+      );
+    } else if (node is ExerciseReportNode) {
+      return ExerciseReportWidget(node: node);
     }
-    return cellSize.clamp(40.0, 220.0);
+    return const SizedBox.shrink();
   }
 
   @override
@@ -528,9 +533,14 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
     final activeSession = timelineState.activeSession;
     final nodes = activeSession.nodes;
 
-    // Listen for new timeline events to auto-scroll
+    final frozenNodes = nodes.where((n) => n.isFrozen).toList();
+    final activeNode = nodes.where((n) => !n.isFrozen).firstOrNull;
+
+    // Listen for new frozen timeline events to auto-scroll the history list
     ref.listen<int>(
-      timelineProvider.select((s) => s.activeSession.nodes.length),
+      timelineProvider.select(
+        (s) => s.activeSession.nodes.where((n) => n.isFrozen).length,
+      ),
       (_, next) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       },
@@ -541,7 +551,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
     final avgMs = timelineState.avgMs;
     final hitRateAcc = (timelineState.hitRate * 100).toStringAsFixed(0);
     final telemetryStr =
-        '[Racha: $streak | ms: ${avgMs > 0 ? avgMs : "—"} | A: $hitRateAcc%]';
+        '[Streak: $streak | ms: ${avgMs > 0 ? avgMs : "—"} | Acc: $hitRateAcc%]';
 
     // UI elements setup
 
@@ -615,19 +625,11 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
               child: LayoutBuilder(
                 builder: (ctx, constraints) {
                   final localCanvasHeight = constraints.maxHeight;
-                  final activeGridHeight = _calculateActiveGridHeight(
-                    nodes,
-                    localCanvasHeight,
-                    settings.layoutMode,
-                  );
-                  final localBottomPadding = activeGridHeight > 0.0
-                      ? (localCanvasHeight - activeGridHeight) / 2
-                      : 24.0;
 
                   if (nodes.isEmpty) {
                     return Center(
                       child: Text(
-                        'ESPERANDO CONEXIÓN DEL INGRESO...',
+                        'WAITING FOR SESSION INPUT...',
                         style: TextStyle(
                           color: accent.withValues(alpha: 0.3),
                           fontSize: 11,
@@ -639,90 +641,102 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
 
                   return Stack(
                     children: [
-                      // Telemetry Overlay
-                      Positioned(
-                        top: 8,
-                        left: 16,
-                        right: 16,
-                        child: Text(
-                          telemetryStr,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: accent.withValues(alpha: 0.3),
-                            fontFamily: 'Courier',
-                            fontSize: 10,
+                      Column(
+                        children: [
+                          // Telemetry Overlay
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              telemetryStr,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: accent.withValues(alpha: 0.3),
+                                fontFamily: 'Courier',
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      // Feed scrolling list builder
-                      NotificationListener<UserScrollNotification>(
-                        onNotification: (notification) {
-                          final maxScroll =
-                              notification.metrics.maxScrollExtent;
-                          final pixels = notification.metrics.pixels;
-                          // Detectar deslizamiento hacia arriba para ver el historial
-                          if (pixels < maxScroll - 20) {
-                            if (!timelineState.isPaused) {
-                              _pausedByScroll = true;
-                              ref.read(timelineProvider.notifier).pauseGame();
-                            }
-                          } else if (pixels >= maxScroll - 5) {
-                            // Detectar retorno al final
-                            if (timelineState.isPaused && _pausedByScroll) {
-                              _pausedByScroll = false;
-                              ref.read(timelineProvider.notifier).resumeGame();
-                            }
-                          }
-                          return true;
-                        },
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.only(
-                            top: 24,
-                            bottom: localBottomPadding,
+
+                          // Feed scrolling list builder (History Feed)
+                          Expanded(
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.only(
+                                top: 12,
+                                bottom: 24,
+                              ),
+                              itemCount: frozenNodes.length,
+                              itemBuilder: (ctx, i) {
+                                final node = frozenNodes[i];
+                                // Render appropriate node based on its type
+                                if (node is MecaInputNode) {
+                                  return MecaInputWidget(node: node);
+                                } else if (node is KanjiProductionNode) {
+                                  return KanjiProductionWidget(
+                                    productionNode: node,
+                                  );
+                                } else if (node is ConceptRecallNode) {
+                                  return KanjiProductionWidget(
+                                    recallNode: node,
+                                  );
+                                } else if (node is KanjiQuizNode) {
+                                  return KanjiQuizWidget(node: node);
+                                } else if (node is LaneCollisionViewportNode) {
+                                  return ArcadeViewportWidget(node: node);
+                                } else if (node is StrokeValidationNode) {
+                                  return StrokeValidationWidget(node: node);
+                                } else if (node is ExerciseReportNode) {
+                                  return ExerciseReportWidget(node: node);
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
                           ),
-                          itemCount: nodes.length,
-                          itemBuilder: (ctx, i) {
-                            final node = nodes[i];
-                            // Render appropriate node based on its type
-                            if (node is MecaInputNode) {
-                              return MecaInputWidget(node: node);
-                            } else if (node is KanjiProductionNode) {
-                              return KanjiProductionWidget(
-                                productionNode: node,
-                              );
-                            } else if (node is ConceptRecallNode) {
-                              return KanjiProductionWidget(recallNode: node);
-                            } else if (node is KanjiQuizNode) {
-                              return KanjiQuizWidget(node: node);
-                            } else if (node is LaneCollisionViewportNode) {
-                              if (node.isFrozen) {
-                                return ArcadeViewportWidget(node: node);
-                              }
-                              return SizedBox(
-                                height: (localCanvasHeight * 0.6).clamp(
-                                  300.0,
-                                  440.0,
-                                ),
-                                child: ArcadeViewportWidget(node: node),
-                              );
-                            } else if (node is StrokeValidationNode) {
-                              if (node.isFrozen) {
-                                return StrokeValidationWidget(node: node);
-                              }
-                              return SizedBox(
-                                height: (localCanvasHeight * 0.55).clamp(
-                                  260.0,
-                                  360.0,
-                                ),
-                                child: StrokeValidationWidget(node: node),
-                              );
-                            } else if (node is ExerciseReportNode) {
-                              return ExerciseReportWidget(node: node);
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
+
+                          // Active Workspace Area
+                          if (activeNode != null) ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 1,
+                                    color: accent.withValues(alpha: 0.3),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'ACTIVE WORKSPACE',
+                                    style: TextStyle(
+                                      color: accent.withValues(alpha: 0.4),
+                                      fontFamily: 'Courier',
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Divider(
+                                      color: accent.withValues(alpha: 0.15),
+                                      height: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildActiveNodeWidget(
+                                activeNode,
+                                localCanvasHeight,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
 
                       // Central pause overlay actions when paused (Oculto al inspeccionar historial)
@@ -749,7 +763,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                         ],
                                       ),
                                       child: const Text(
-                                        'SISTEMA PAUSADO',
+                                        'SYSTEM PAUSED',
                                         style: TextStyle(
                                           color: CyberTheme.errorRed,
                                           fontFamily: 'Courier',
@@ -763,7 +777,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                     SizedBox(
                                       width: 240,
                                       child: CyberButton(
-                                        label: 'REANUDAR',
+                                        label: 'RESUME',
                                         onTap: () {
                                           ref
                                               .read(timelineProvider.notifier)
@@ -776,7 +790,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                     SizedBox(
                                       width: 240,
                                       child: CyberButton(
-                                        label: 'AJUSTES',
+                                        label: 'SETTINGS',
                                         onTap: () {
                                           _showContextSettings(
                                             context,
@@ -791,7 +805,7 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                                     SizedBox(
                                       width: 240,
                                       child: CyberButton(
-                                        label: 'DESCONECTAR',
+                                        label: 'DISCONNECT',
                                         onTap: () {
                                           SystemNavigator.pop();
                                         },
@@ -812,7 +826,6 @@ class _EngineSelectorScreenState extends ConsumerState<EngineSelectorScreen>
                           right: 16,
                           child: GestureDetector(
                             onTap: () {
-                              _pausedByScroll = false;
                               _scrollToBottom();
                               ref.read(timelineProvider.notifier).resumeGame();
                             },

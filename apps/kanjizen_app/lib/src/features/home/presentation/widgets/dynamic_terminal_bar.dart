@@ -56,7 +56,13 @@ class _DynamicTerminalBarState extends ConsumerState<DynamicTerminalBar> {
         lastNode is ConceptRecallNode) {
       // TerminalMode - keyboard typing
       if (!_focusNode.hasFocus && !timelineState.isPaused) {
-        _focusNode.requestFocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              !_focusNode.hasFocus &&
+              !ref.read(timelineProvider).isPaused) {
+            _focusNode.requestFocus();
+          }
+        });
       }
 
       String hint = 'Escribe en romaji...';
